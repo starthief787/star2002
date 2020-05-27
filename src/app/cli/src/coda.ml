@@ -30,7 +30,7 @@ let maybe_sleep _ = Deferred.unit
 
 [%%endif]
 
-let chain_id ~genesis_state_hash ~genesis_constants =
+let chain_id ~logger ~genesis_state_hash ~genesis_constants =
   let genesis_state_hash = State_hash.to_base58_check genesis_state_hash in
   let genesis_constants_hash = Genesis_constants.hash genesis_constants in
   let all_snark_keys = String.concat ~sep:"" Snark_keys.key_hashes in
@@ -38,7 +38,15 @@ let chain_id ~genesis_state_hash ~genesis_constants =
     Blake2.digest_string
       (genesis_state_hash ^ all_snark_keys ^ genesis_constants_hash)
   in
-  Blake2.to_hex b2
+  let res = Blake2.to_hex b2 in
+  Logger.info ~module_:__MODULE__ ~location:__LOC__ logger
+    "$genesis_state_hash || $genesis_constants_hash || $all_snark_keys || $res"
+    ~metadata:
+      [ ("genesis_state_hash", `String genesis_state_hash)
+      ; ("genesis_constants_hash", `String genesis_constants_hash)
+      ; ("all_snark_keys", `String all_snark_keys)
+      ; ("res", `String res) ] ;
+  res
 
 [%%inject
 "daemon_expiry", daemon_expiry]
@@ -166,14 +174,14 @@ let daemon logger =
             (this is INSECURE, make sure your firewall is configured \
             correctly!)"
      (* FIXME #4095
-     and limit_connections =
-       flag "limit-concurrent-connections"
+        and limit_connections =
+        flag "limit-concurrent-connections"
          ~doc:
            "true|false Limit the number of concurrent connections per IP \
             address (default: true)"
          (optional bool)*)
      (*TODO: This is being added to log all the snark works received for the
-     beta-testnet challenge. We might want to remove this later?*)
+       beta-testnet challenge. We might want to remove this later?*)
      and log_received_snark_pool_diff =
        flag "log-snark-work-gossip"
          ~doc:
@@ -490,8 +498,8 @@ let daemon logger =
            (*if
              or_from_config YJ.Util.to_bool_option "max-concurrent-connections"
                ~default:true limit_connections
-           then Some 40
-           else *)
+             then Some 40
+             else *)
            None
          in
          let work_selection_method =
@@ -713,7 +721,8 @@ let daemon logger =
              { timeout= Time.Span.of_sec 3.
              ; logger
              ; conf_dir
-             ; chain_id= chain_id ~genesis_state_hash ~genesis_constants
+             ; chain_id=
+                 chain_id ~logger ~genesis_state_hash ~genesis_constants
              ; unsafe_no_trust_ip= false
              ; initial_peers
              ; addrs_and_ports
@@ -1072,7 +1081,7 @@ let () =
   Snarky.Libsnark.set_printing_off () ;
   (* intercept command-line processing for "version", because we don't
      use the Jane Street scripts that generate their version information
-   *)
+  *)
   (let make_list_mem ss s = List.mem ss s ~equal:String.equal in
    let is_version_cmd = make_list_mem ["version"; "-version"] in
    let is_help_flag = make_list_mem ["-help"; "-?"] in

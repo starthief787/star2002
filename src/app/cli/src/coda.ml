@@ -32,7 +32,7 @@ let maybe_sleep _ = Deferred.unit
 
 let chain_id ~logger ~genesis_state_hash ~genesis_constants =
   let genesis_state_hash = State_hash.to_base58_check genesis_state_hash in
-  let genesis_constants_hash = Genesis_constants.hash genesis_constants in
+  let genesis_constants_hash = Genesis_constants.hash ~logger genesis_constants in
   let all_snark_keys = String.concat ~sep:"" Snark_keys.key_hashes in
   let b2 =
     Blake2.digest_string

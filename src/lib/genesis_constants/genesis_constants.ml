@@ -185,7 +185,7 @@ module T = struct
     {protocol: Protocol.t; txpool_max_size: int; num_accounts: int option}
   [@@deriving to_yojson]
 
-  let hash (t : t) =
+  let hash ?logger (t : t) =
     let str =
       ( List.map
           [t.protocol.k; t.protocol.delta; t.txpool_max_size]
@@ -193,6 +193,13 @@ module T = struct
       |> String.concat ~sep:"" )
       ^ Core.Time.to_string t.protocol.genesis_state_timestamp
     in
+    ( match logger with
+    | Some l ->
+        Logger.warn l "Input to genesis constants hash: $input"
+          ~module_:__MODULE__ ~location:__LOC__
+          ~metadata:[("input", `String str)]
+    | None ->
+        () ) ;
     Blake2.digest_string str |> Blake2.to_hex
 end
 

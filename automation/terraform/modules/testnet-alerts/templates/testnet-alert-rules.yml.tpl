@@ -6,23 +6,23 @@ namespace: ${rule_namespace}
 groups:
 - name: Critical Alerts
   rules:
-  - alert: BlockProductionStopped
-    expr: avg by (testnet) (increase(Coda_Transition_frontier_max_blocklength_observed ${rule_filter} [${alerting_timeframe}])) < 1
-    labels:
-      testnet: "{{ $labels.testnet }}"
-      severity: critical
-    annotations:
-      summary: "{{ $labels.testnet }} block production is critically low"
-      description: "Zero blocks have been produced on network {{ $labels.testnet }}."
-
   - alert: WatchdogClusterCrashes
-    expr: max by (testnet) (max_over_time(Coda_watchdog_cluster_crashes ${rule_filter} [${alerting_timeframe}])) > 0
+    expr: max by (testnet) (max_over_time(Coda_watchdog_cluster_crashes ${rule_filter} [${alerting_timeframe}])) > 0.5
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: critical
     annotations:
       summary: "{{ $labels.testnet }} cluster nodes have crashed"
       description: "Cluster nodes have crashed on network {{ $labels.testnet }}."
+
+  - alert: WatchdogNoNewLogs
+    expr: max by (testnet) (Coda_watchdog_pods_with_no_new_logs) > 0
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: critical
+    annotations:
+      summary: "{{ $labels.testnet }} has pods which have not logged in 10 minutes"
+      description: "There are no new logs in the last 10 minutes for some pods on network {{ $labels.testnet }}."
 
   - alert: SeedListDown
     expr: min by (testnet) (min_over_time(Coda_watchdog_seeds_reachable ${rule_filter} [${alerting_timeframe}])) == 0
@@ -70,7 +70,7 @@ groups:
       description: "< 90% of nodes that are synced are on the same best tip for  network {{ $labels.testnet }}."
 
   - alert: LowPeerCount
-    expr: avg by (testnet) (max_over_time(Coda_Network_peers ${rule_filter} [${alerting_timeframe}])) < 1
+    expr: min by (testnet) (Coda_Network_peers ${rule_filter}) < 3
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: critical
@@ -79,7 +79,7 @@ groups:
       description: "Critically low peer count on network {{ $labels.testnet }}."
 
   - alert: LowMinWindowDensity
-    expr: max by (testnet) (Coda_Transition_frontier_min_window_density ${rule_filter}) < 0.75 * 0.75 * 77
+    expr: min by (testnet) (Coda_Transition_frontier_min_window_density ${rule_filter}) < 0.75 * 0.75 * 77
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: critical
@@ -88,7 +88,7 @@ groups:
       description: "Critically low min density on network {{ $labels.testnet }}."
 
   - alert: LowFillRate
-    expr: max by (testnet) (Coda_Transition_frontier_slot_fill_rate ${rule_filter}) < 0.75 * 0.75
+    expr: min by (testnet) (Coda_Transition_frontier_slot_fill_rate ${rule_filter}) < 0.75 * 0.75
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: critical
@@ -142,18 +142,36 @@ groups:
       description: "No node has received SNARK work in the last 2 slots (6 minutes) on network {{ $labels.testnet }}."
 
   - alert: NoNewTransactions
-    expr: min by (testnet) ((time() - 1609459200) - Coda_Transaction_pool_useful_transactions_received_time_sec ${rule_filter}) >= 60 * 30
+    expr: min by (testnet) ((time() - 1609459200) - Coda_Transaction_pool_useful_transactions_received_time_sec ${rule_filter}) >= 2 * 180
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: critical
     annotations:
-      summary: "{{ $labels.testnet }}: no new transactions seen for 30 minutes."
-      description: "No node has received transactions in their transaction pool in the last 30 minutes on network {{ $labels.testnet }}."
+      summary: "{{ $labels.testnet }}: no new transactions seen for 2 slots."
+      description: "No node has received transactions in their transaction pool in the last 2 slots (6 minutes) on network {{ $labels.testnet }}."
+
+  - alert: HighUnparentedBlockCount
+    expr: max by (testnet) (max_over_time(Coda_Archive_unparented_blocks ${rule_filter} [${alerting_timeframe}])) > 30
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: critical
+    annotations:
+      summary: "{{ $labels.testnet }} has a critically high unparented block count"
+      description: "{{ $value }} Unparented block count is critically high on network {{ $labels.testnet }}."
+
+  - alert: HighMissingBlockCount
+    expr: max by (testnet) (max_over_time(Coda_Archive_missing_blocks ${rule_filter} [${alerting_timeframe}])) > 30
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: critical
+    annotations:
+      summary: "{{ $labels.testnet }} has a critically high missing block count"
+      description: "{{ $value }} Missing block count is critically high on network {{ $labels.testnet }}."
 
 - name: Warnings
   rules:
   - alert: HighBlockGossipLatency
-    expr: avg by (testnet) (max_over_time(Coda_Block_latency_gossip_time ${rule_filter} [${alerting_timeframe}])) > 200
+    expr: max by (testnet) (max_over_time(Coda_Block_latency_gossip_time ${rule_filter} [${alerting_timeframe}])) > 200
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: warning
@@ -162,13 +180,13 @@ groups:
       description: "High block gossip latency (ms) within {{ $labels.testnet }} network."
 
   - alert: SomewhatOldBestTip
-    expr: min by (testnet) ((time() - 1609459200) - Coda_Transition_frontier_best_tip_slot_time_sec ${rule_filter}) >= 8 * 180
+    expr: count by (testnet) (((time() - 1609459200) - Coda_Transition_frontier_best_tip_slot_time_sec ${rule_filter}) >= 8 * 180) > 1
     labels:
       testnet: "{{ $labels.testnet }}"
       severity: warning
     annotations:
-      summary: "{{ $labels.testnet }}: all nodes have best tips older than 8 slots"
-      description: "All nodes have best tips older than 8 slots (24 minutes) on network {{ $labels.testnet }}."
+      summary: "{{ $labels.testnet }}: at least 2 nodes have best tips older than 8 slots"
+      description: "At least 2 nodes have best tips older than 8 slots (24 minutes) on network {{ $labels.testnet }}."
 
   - alert: MediumFork
     expr: max by (testnet) (Coda_Transition_frontier_longest_fork ${rule_filter}) >= 8
@@ -196,3 +214,39 @@ groups:
     annotations:
       summary: "{{ $labels.testnet }} seed list is degraded (less than 50% reachable)"
       description: "Seed list is degraded on network {{ $labels.testnet }}."
+
+  - alert: FewBlocksPerHour
+    expr: min by (testnet) (increase(Coda_Transition_frontier_max_blocklength_observed ${rule_filter} [${alerting_timeframe}])) < 1
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: warning
+    annotations:
+      summary: "{{ $labels.testnet }} block production is critically low (there has been less than 1 block in the last hour)"
+      description: "Zero blocks have been produced on network {{ $labels.testnet }} in the last hour (according to some node)."
+
+  - alert: LowPostgresBlockHeightGrowth
+    expr: min by (testnet) (increase(Coda_Archive_max_block_height ${rule_filter} [${alerting_timeframe}])) < 1
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: warning
+    annotations:
+      summary: "{{ $labels.testnet }} rate of archival of network blocks in Postgres DB is lower than expected"
+      description: "The rate of {{ $value }} new blocks observed by archive postgres instances is low on network {{ $labels.testnet }}."
+
+  - alert: UnparentedBlocksObserved
+    expr: max by (testnet) (max_over_time(Coda_Archive_unparented_blocks ${rule_filter} [${alerting_timeframe}])) > 1
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: warning
+    annotations:
+      summary: "Unparented blocks observed on {{ $labels.testnet }}"
+      description: "{{ $value }} Unparented block(s) observed on network {{ $labels.testnet }}."
+
+  - alert: MissingBlocksObserved
+    expr: max by (testnet) (max_over_time(Coda_Archive_missing_blocks ${rule_filter} [${alerting_timeframe}])) > 0
+    labels:
+      testnet: "{{ $labels.testnet }}"
+      severity: warning
+    annotations:
+      summary: "Missing blocks observed on {{ $labels.testnet }}"
+      description: "{{ $value }} Missing block(s) observed on network {{ $labels.testnet }}."

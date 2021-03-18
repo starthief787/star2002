@@ -4,7 +4,7 @@
 
 namespace: ${rule_namespace}
 groups:
-- name: Critical Alerts
+- name: Critical
   rules:
   - alert: WatchdogClusterCrashes
     expr: max by (testnet) (max_over_time(Coda_watchdog_cluster_crashes ${rule_filter} [${alerting_timeframe}])) > 0.5

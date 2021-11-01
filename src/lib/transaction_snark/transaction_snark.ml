@@ -3018,27 +3018,19 @@ type tag =
   , Nat.N2.n )
   Pickles.Tag.t
 
-let time lab f =
-  let start = Time.now () in
-  let x = f () in
-  let stop = Time.now () in
-  printf "%s: %s\n%!" lab (Time.Span.to_string_hum (Time.diff stop start)) ;
-  x
-
 let system ~proof_level ~constraint_constants =
-  time "Transaction_snark.system" (fun () ->
-      Pickles.compile ~cache:Cache_dir.cache
-        (module Statement.With_sok.Checked)
-        (module Statement.With_sok)
-        ~typ:Statement.With_sok.typ
-        ~branches:(module Nat.N2)
-        ~max_branching:(module Nat.N2)
-        ~name:"transaction-snark"
-        ~constraint_constants:
-          (Genesis_constants.Constraint_constants.to_snark_keys_header
-             constraint_constants)
-        ~choices:(fun ~self ->
-          [ Base.rule ~constraint_constants; Merge.rule ~proof_level self ]))
+  Pickles.compile ~cache:Cache_dir.cache
+    (module Statement.With_sok.Checked)
+    (module Statement.With_sok)
+    ~typ:Statement.With_sok.typ
+    ~branches:(module Nat.N2)
+    ~max_branching:(module Nat.N2)
+    ~name:"transaction-snark"
+    ~constraint_constants:
+      (Genesis_constants.Constraint_constants.to_snark_keys_header
+         constraint_constants)
+    ~choices:(fun ~self ->
+      [ Base.rule ~constraint_constants; Merge.rule ~proof_level self ])
 
 module Verification = struct
   module type S = sig

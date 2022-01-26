@@ -179,10 +179,4 @@ let command =
                 display_error "fail to verify the snark work" ;
                 Deferred.unit))
 
-let rpc_heartbeat_config =
-  Async_rpc_kernel.Rpc.Connection.Heartbeat_config.create
-    ~send_every:(Time_ns.Span.of_sec 15.) ()
-
-let () =
-  Rpc_parallel.start_app ~rpc_heartbeat_config
-    ~rpc_handshake_timeout:(Time.Span.of_min 2.) command
+let () = Async.Command.run command

@@ -33,6 +33,7 @@
    mina_networking
    block_time
    truth
-   non_empty_list
+   mina_stdlib
    mina_net2
+   bootstrap_controller
 ))

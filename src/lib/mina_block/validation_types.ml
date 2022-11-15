@@ -164,7 +164,8 @@ type pre_initial_valid_with_header =
   ( [ `Time_received ] * unit Truth.true_t
   , [ `Genesis_state ] * unit Truth.true_t
   , [ `Proof ] * unit Truth.false_t
-  , [ `Delta_block_chain ] * State_hash.t Non_empty_list.t Truth.true_t
+  , [ `Delta_block_chain ]
+    * State_hash.t Mina_stdlib.Nonempty_list.t Truth.true_t
   , [ `Frontier_dependencies ] * unit Truth.false_t
   , [ `Staged_ledger_diff ] * unit Truth.false_t
   , [ `Protocol_versions ] * unit Truth.true_t )

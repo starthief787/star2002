@@ -20,6 +20,15 @@
    interruptible
    mina_numbers
    transition_frontier_base
+   consensus
+   mina_wire_types
+   kimchi_backend.pasta
+   kimchi_backend.pasta.basic
+   pasta_bindings
+   snark_params
+   pickles_types
+   pickles
+   pickles.backend
    )
  (instrumentation (backend bisect_ppx))
  (preprocess (pps ppx_jane ppx_mina)))

@@ -21,10 +21,7 @@
    mina_numbers
    transition_frontier_base
    consensus
-   ; pasta_bindings
-   ; pickles_types
-   ; pickles
-   ; pickles.backend
+   error_json
    mina_wire_types
    pickles.backend
    pickles

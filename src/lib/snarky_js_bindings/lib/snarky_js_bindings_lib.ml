@@ -2206,6 +2206,7 @@ let pickles_digest (choices : pickles_rule_js Js.js_array Js.t)
   try
     let _ =
       Pickles.compile_promise () ~choices ~return_early_digest_exception:true
+        ~override_wrap_domain:(Pickles_base.Proofs_verified.of_int 1)
         ~public_input:(Input (public_input_typ public_input_size))
         ~auxiliary_typ:Typ.unit
         ~branches:(module Branches)
@@ -2229,6 +2230,7 @@ let pickles_compile (choices : pickles_rule_js Js.js_array Js.t)
   let (Choices choices) = Choices.of_js ~public_input_size choices in
   let tag, _cache, p, provers =
     Pickles.compile_promise () ~choices
+      ~override_wrap_domain:(Pickles_base.Proofs_verified.of_int 1)
       ~public_input:(Input (public_input_typ public_input_size))
       ~auxiliary_typ:Typ.unit
       ~branches:(module Branches)

@@ -45,7 +45,7 @@ let net_configs n =
         List.init n ~f:(fun i ->
             List.take all_peers i @ List.drop all_peers (i + 1) )
       in
-      let%map () = Mina_net2.shutdown net in
+      let%map _ = Mina_net2.shutdown net in
       (addrs_and_ports_list, List.map ~f:(List.map ~f:fst) peers) )
 
 let offset (consensus_constants : Consensus.Constants.t) =

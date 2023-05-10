@@ -485,7 +485,7 @@ dependencies = [
  "num-traits",
  "o1-utils",
  "ocaml",
- "ocaml-gen",
+ "ocaml-gen 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "poly-commitment",
  "rand",
@@ -548,7 +548,7 @@ dependencies = [
  "mina-curves",
  "o1-utils",
  "ocaml",
- "ocaml-gen",
+ "ocaml-gen 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "rand",
  "rayon",
@@ -705,7 +705,18 @@ checksum = "28dd9d697b36ebaab7c810ae59d8c6e522f431136b22b86fed46a79baae8003e"
 dependencies = [
  "const-random",
  "ocaml",
- "ocaml-gen-derive",
+ "ocaml-gen-derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "paste",
+]
+
+[[package]]
+name = "ocaml-gen"
+version = "0.1.4"
+source = "git+https://github.com/o1-labs/ocaml-gen?rev=293028bc4300d1ee51e983fec4f5d22a578f1e0e#293028bc4300d1ee51e983fec4f5d22a578f1e0e"
+dependencies = [
+ "const-random",
+ "ocaml",
+ "ocaml-gen-derive 0.1.4 (git+https://github.com/o1-labs/ocaml-gen?rev=293028bc4300d1ee51e983fec4f5d22a578f1e0e)",
  "paste",
 ]
 
@@ -714,6 +725,17 @@ name = "ocaml-gen-derive"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c46ef2be0733a7e51ce938e8330877bcf3f74c8be4d7d565136b314cb7039c37"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "ocaml-gen-derive"
+version = "0.1.4"
+source = "git+https://github.com/o1-labs/ocaml-gen?rev=293028bc4300d1ee51e983fec4f5d22a578f1e0e#293028bc4300d1ee51e983fec4f5d22a578f1e0e"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -778,7 +800,7 @@ dependencies = [
  "mina-poseidon",
  "o1-utils",
  "ocaml",
- "ocaml-gen",
+ "ocaml-gen 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "rand",
  "rand_core",
@@ -1196,7 +1218,7 @@ dependencies = [
  "num-bigint",
  "o1-utils",
  "ocaml",
- "ocaml-gen",
+ "ocaml-gen 0.1.4 (git+https://github.com/o1-labs/ocaml-gen?rev=293028bc4300d1ee51e983fec4f5d22a578f1e0e)",
  "once_cell",
  "paste",
  "poly-commitment",

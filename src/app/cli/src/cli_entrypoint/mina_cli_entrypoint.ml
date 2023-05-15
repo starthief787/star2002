@@ -72,8 +72,8 @@ let setup_daemon logger =
             Private key file for the block producer. Providing this flag or \
             the environment variable will enable block production. You cannot \
             provide both `block-producer-key` and `block-producer-pubkey`. \
-            (default: if provided, use environment variable `MINA_BP_PRIVKEY`, \
-            and otherwise don't produce blocks) %s"
+            (default: if provided, use environment variable `MINA_BP_PRIVKEY` \
+            in Base58 format, and otherwise don't produce blocks) %s"
            receiver_key_warning )
       (optional string)
   and block_production_pubkey =
@@ -84,8 +84,8 @@ let setup_daemon logger =
            "PUBLICKEY Public key for the associated private key that is being \
             tracked by this daemon. You cannot provide both \
             `block-producer-key` and `block-producer-pubkey`. (default: if \
-            provided, use environment variable `MINA_BP_PRIVKEY`, and \
-            otherwise don't produce blocks) %s"
+            provided, use environment variable `MINA_BP_PRIVKEY` in Base58 \
+            format, and otherwise don't produce blocks) %s"
            receiver_key_warning )
       (optional public_key_compressed)
   and block_production_password =

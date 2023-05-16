@@ -66,6 +66,22 @@ client will refuse to import them. Note that the command to generate
 these keys is different. That's because these are not p2p keys, but
 Mina account keys, which use a different format.
 
+The private key in `keys/block-producer.key` should then be stored in 
+Base58 format in the `MINA_BP_PRIVKEY` environment variable. To convert 
+the private key to Base58, run `mina advanced dump-keypair` with the
+path to `keys/block-producer.key` provided.
+
+```shell
+$ mina advanced dump-keypair --privkey-path /path/to/keys/block-producer.key
+```
+
+This will print the Base58-formatted public and private key. 
+Set the environment variable `MINA_BP_PRIVKEY` as the private key.
+
+```shell
+$ export MINA_BP_PRIVKEY=<the Base58-formatted private key>
+```
+
 Additionally, the block producer's key should be copied to the `wallets`
 directory in the node's config dir. This directory doesn't exist yet
 probably, so one can create it by hand or use the following command to

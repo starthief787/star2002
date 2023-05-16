@@ -22,7 +22,8 @@ These flags are supported in the `daemon` object of the config file:
 - `client-port` int
 - `libp2p-port` int
 - `rest-port` int
-- `block-producer-key` private-key-file
+- `block-producer-key` DEPRECATED private-key-file. Use `MINA_BP_PRIVKEY` \
+            instead.
 - `block-producer-pubkey` public-key-string
 - `block-producer-password` string
 - `coinbase-receiver` public-key-string
@@ -43,5 +44,14 @@ These flags are supported in the `daemon` object of the config file:
 The daemon will read some environment variables on startup.
 
 `MINA_CLIENT_TRUSTLIST` is a comma-separated list of CIDR masks, for example `10.0.0.0/8,172.16.0.0/12,192.168.0.0/16` would allow any client on an RFC1918 private network to control the daemon. This list can be edited with `mina advanced client-trustlist` commands.
+
+`MINA_BP_PRIVKEY` is a block-producer key in Base58 format. One can produce this 
+value by running `mina advanced dump-keypair --privkey-path /path/to/keys/block-producer.key` (assuming `/keys/block-producer.key` already exists) and then
+copying the `Private Key` value from the command output to `MINA_BP_PRIVKEY`. 
+If either the `--block-producer-key` or `--block-producer-pubkey` flag is 
+supplied, then said flag will used instead. If `MINA_BP_PRIVKEY` is not set 
+and neither key-flag is used, then no block will be produced. Please note 
+that the `--block-producer-key` flag is deprecated, and it is recommended to 
+use `MINA_BP_PRIVKEY` instead.
 
 There are other environment variables, but they aren't documented yet.

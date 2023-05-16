@@ -958,6 +958,9 @@ let setup_daemon logger =
                       Private_key.of_base58_check_exn base58_privkey
                       |> Keypair.of_private_key_exn
                     in
+                    [%log info]
+                      "Private key was loaded from the MINA_BP_PRIVKEY. Node \
+                       will produce blocks." ;
                     return (Some kp)
                 | None ->
                     return None )

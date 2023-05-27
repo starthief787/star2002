@@ -9,7 +9,7 @@ use ark_ff::One;
 use array_init::array_init;
 use groupmap::GroupMap;
 use kimchi::{
-    circuits::lookup::runtime_tables::{self, caml::CamlRuntimeTable},
+    circuits::lookup::runtime_tables::{self, caml::CamlRuntimeTable, RuntimeTable},
     prover_index::ProverIndex,
 };
 use kimchi::{circuits::polynomial::COLUMNS, verifier::batch_verify};
@@ -34,7 +34,7 @@ use std::convert::TryInto;
 pub fn caml_pasta_fq_plonk_proof_create(
     index: CamlPastaFqPlonkIndexPtr<'static>,
     witness: Vec<CamlFqVector>,
-    runtime_tables: &[CamlRuntimeTable<CamlFqVector>],
+    runtime_tables: Vec<CamlRuntimeTable<CamlFq>>,
     prev_challenges: Vec<CamlFq>,
     prev_sgs: Vec<CamlGPallas>,
 ) -> Result<CamlProverProof<CamlGPallas, CamlFq>, ocaml::Error> {
@@ -70,6 +70,8 @@ pub fn caml_pasta_fq_plonk_proof_create(
         .try_into()
         .expect("the witness should be a column of 15 vectors");
     let index: &ProverIndex<Pallas> = &index.as_ref().0;
+
+    let runtime_tables: Vec<RuntimeTable<Fq>> = runtime_tables.into_iter().map(Into::into).collect();
 
     // public input
     let public_input = witness[0][0..index.cs.public].to_vec();

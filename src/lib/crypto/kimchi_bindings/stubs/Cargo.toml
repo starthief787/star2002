@@ -40,4 +40,4 @@ kimchi = { path = "../../proof-systems/kimchi", features = ["ocaml_types"] }
 
 # ocaml-specific
 ocaml = { version = "0.22.2", features = ["no-caml-startup"] }
-ocaml-gen = { git = "https://github.com/o1-labs/ocaml-gen", rev = "293028bc4300d1ee51e983fec4f5d22a578f1e0e" }
+ocaml-gen = { git = "https://github.com/o1-labs/ocaml-gen", rev = "baf84fdea2280cb3573dbb354c0d7720e1c18622" }

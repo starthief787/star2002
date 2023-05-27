@@ -103,6 +103,7 @@ pub fn caml_pasta_fp_plonk_proof_create(
 pub fn caml_pasta_fp_plonk_proof_create_and_verify(
     index: CamlPastaFpPlonkIndexPtr<'static>,
     witness: Vec<CamlFpVector>,
+    runtime_tables: Vec<CamlRuntimeTable<CamlFp>>,
     prev_challenges: Vec<CamlFp>,
     prev_sgs: Vec<CamlGVesta>,
 ) -> Result<CamlProverProof<CamlGVesta, CamlFp>, ocaml::Error> {
@@ -138,6 +139,7 @@ pub fn caml_pasta_fp_plonk_proof_create_and_verify(
         .try_into()
         .map_err(|_| ocaml::Error::Message("the witness should be a column of 15 vectors"))?;
     let index: &ProverIndex<Vesta> = &index.as_ref().0;
+    let runtime_tables: Vec<RuntimeTable<Fp>> = runtime_tables.into_iter().map(Into::into).collect();
 
     // public input
     let public_input = witness[0][0..index.cs.public].to_vec();
@@ -153,7 +155,7 @@ pub fn caml_pasta_fp_plonk_proof_create_and_verify(
         let proof = ProverProof::create_recursive::<EFqSponge, EFrSponge>(
             &group_map,
             witness,
-            &[],
+            &runtime_tables,
             index,
             prev,
             None,

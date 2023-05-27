@@ -9,7 +9,7 @@ use ark_ff::One;
 use array_init::array_init;
 use groupmap::GroupMap;
 use kimchi::{
-    circuits::lookup::runtime_tables::{self, caml::CamlRuntimeTable, RuntimeTable},
+    circuits::lookup::runtime_tables::{caml::CamlRuntimeTable, RuntimeTable},
     prover_index::ProverIndex,
 };
 use kimchi::{circuits::polynomial::COLUMNS, verifier::batch_verify};

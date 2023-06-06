@@ -165,7 +165,7 @@ module Node = struct
     |> Test_graphql.send_delegation ~sender_pub_key ~receiver_pub_key ~fee
 
   let send_payment_with_raw_sig ~logger t ~sender_pub_key ~receiver_pub_key
-      ~amount ~fee ~nonce ~memo ~(valid_until : Mina_numbers.Global_slot.t)
+      ~amount ~fee ~nonce ~memo ~(valid_until : Mina_numbers.Global_slot_since_genesis.t)
       ~raw_signature =
     graphql_client ~logger t
     |> Test_graphql.send_payment_with_raw_sig ~sender_pub_key ~receiver_pub_key

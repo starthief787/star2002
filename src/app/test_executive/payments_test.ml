@@ -131,13 +131,13 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     (* create a signed txn which we'll use to make a successfull txn, and then a replay attack *)
     let amount = Currency.Amount.of_mina_string_exn "10" in
     let fee = Currency.Fee.of_mina_string_exn "1" in
-    let test_constants = Engine.Network.constraint_constants network in
     let receiver_pub_key =
       fish1.keypair.public_key |> Signature_lib.Public_key.compress
     in
     let sender_pub_key =
       fish2.keypair.public_key |> Signature_lib.Public_key.compress
     in
+    let sender_priv_key = fish2.keypair.private_key in
     (* hardcoded copy of extra_genesis_accounts[0] and extra_genesis_accounts[1], update here if they change *)
     let receiver_original_balance = Currency.Amount.of_mina_string_exn "100" in
     let sender_original_balance = Currency.Amount.of_mina_string_exn "100" in
@@ -145,65 +145,38 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     let receiver_account_id =
       Account_id.create receiver_pub_key Token_id.default
     in
-    let txn_body =
-      Signed_command_payload.Body.Payment
-        { receiver_pk = receiver_pub_key; amount }
-    in
     let%bind { nonce = sender_current_nonce; _ } =
       Network.Node.must_get_account_data ~logger untimed_node_b
         ~account_id:sender_account_id
     in
-    let user_command_input =
-      User_command_input.create ~fee ~nonce:sender_current_nonce
-        ~fee_payer_pk:sender_pub_key ~valid_until:None
-        ~memo:(Signed_command_memo.create_from_string_exn "")
-        ~body:txn_body ~signer:sender_pub_key
-        ~sign_choice:(User_command_input.Sign_choice.Keypair fish2.keypair) ()
+    let memo = "" in
+    let valid_until = Mina_numbers.Global_slot_since_genesis.max_value in
+    let payload =
+      let common =
+        { Signed_command_payload.Common.Poly.fee
+        ; fee_payer_pk = sender_pub_key
+        ; nonce = sender_current_nonce
+        ; valid_until
+        ; memo = Signed_command_memo.create_from_string_exn memo
+        }
+      in
+      let payment_payload =
+        { Payment_payload.Poly.receiver_pk = receiver_pub_key; amount }
+      in
+      let body = Signed_command_payload.Body.Payment payment_payload in
+      { Signed_command_payload.Poly.common; body }
     in
-    [%log info] "user_command_input: $user_command"
-      ~metadata:
-        [ ( "user_command"
-          , User_command_input.Stable.Latest.to_yojson user_command_input )
-        ] ;
-    let%bind txn_signed =
-      User_command_input.to_user_command
-        ~get_current_nonce:(fun _ -> failwith "get_current_nonce, don't call me")
-        ~nonce_map:
-          (Account_id.Map.of_alist_exn
-             [ ( Account_id.create sender_pub_key Account_id.Digest.default
-               , (sender_current_nonce, sender_current_nonce) )
-             ] )
-        ~get_account:(fun _ : Account.t option Participating_state.t ->
-          `Bootstrapping )
-        ~constraint_constants:test_constants ~logger user_command_input
-      |> Deferred.bind ~f:Malleable_error.or_hard_error
-    in
-    let (signed_cmmd, _)
-          : Signed_command.t
-            * (Mina_numbers.Account_nonce.t * Mina_numbers.Account_nonce.t)
-              Account_id.Map.t =
-      txn_signed
+    let raw_signature =
+      Signed_command.sign_payload sender_priv_key payload
+      |> Signature.Raw.encode
     in
     (* setup complete *)
     let%bind () =
       section "send a single signed payment between 2 fish accounts"
         (let%bind { hash; _ } =
-           Network.Node.must_send_payment_with_raw_sig untimed_node_b ~logger
-             ~sender_pub_key:
-               (Account_id.public_key @@ Signed_command.fee_payer signed_cmmd)
-             ~receiver_pub_key:
-               (Signed_command_payload.Body.receiver_pk signed_cmmd.payload.body)
-             ~amount:
-               ( Signed_command_payload.amount signed_cmmd.payload
-               |> Option.value_exn )
-             ~fee:(Signed_command_payload.fee signed_cmmd.payload)
-             ~nonce:signed_cmmd.payload.common.nonce
-             ~memo:
-               (Signed_command_memo.to_raw_bytes_exn
-                  signed_cmmd.payload.common.memo )
-             ~valid_until:signed_cmmd.payload.common.valid_until
-             ~raw_signature:
-               (Mina_base.Signature.Raw.encode signed_cmmd.signature)
+           Network.Node.must_send_payment_with_raw_sig ~logger ~sender_pub_key
+             ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
+             ~valid_until ~raw_signature untimed_node_b
          in
          wait_for t
            (Wait_condition.signed_command_to_be_included_in_frontier
@@ -276,22 +249,9 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
          to conduct a replay attack. expecting a bad nonce"
         (let open Deferred.Let_syntax in
         match%bind
-          Network.Node.send_payment_with_raw_sig untimed_node_b ~logger
-            ~sender_pub_key:
-              (Account_id.public_key @@ Signed_command.fee_payer signed_cmmd)
-            ~receiver_pub_key:
-              (Signed_command_payload.Body.receiver_pk signed_cmmd.payload.body)
-            ~amount:
-              ( Signed_command_payload.amount signed_cmmd.payload
-              |> Option.value_exn )
-            ~fee:(Signed_command_payload.fee signed_cmmd.payload)
-            ~nonce:signed_cmmd.payload.common.nonce
-            ~memo:
-              (Signed_command_memo.to_raw_bytes_exn
-                 signed_cmmd.payload.common.memo )
-            ~valid_until:signed_cmmd.payload.common.valid_until
-            ~raw_signature:
-              (Mina_base.Signature.Raw.encode signed_cmmd.signature)
+          Network.Node.send_payment_with_raw_sig ~logger ~sender_pub_key
+            ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
+            ~valid_until ~raw_signature untimed_node_b
         with
         | Ok { nonce; _ } ->
             Malleable_error.soft_error_format ~value:()
@@ -323,23 +283,9 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
          Invalid_signature"
         (let open Deferred.Let_syntax in
         match%bind
-          Network.Node.send_payment_with_raw_sig untimed_node_a ~logger
-            ~sender_pub_key:
-              (Account_id.public_key @@ Signed_command.fee_payer signed_cmmd)
-            ~receiver_pub_key:
-              (Signed_command_payload.Body.receiver_pk signed_cmmd.payload.body)
-            ~amount:
-              ( Signed_command_payload.amount signed_cmmd.payload
-              |> Option.value_exn )
-            ~fee:(Signed_command_payload.fee signed_cmmd.payload)
-            ~nonce:
-              (Mina_numbers.Account_nonce.succ signed_cmmd.payload.common.nonce)
-            ~memo:
-              (Signed_command_memo.to_raw_bytes_exn
-                 signed_cmmd.payload.common.memo )
-            ~valid_until:signed_cmmd.payload.common.valid_until
-            ~raw_signature:
-              (Mina_base.Signature.Raw.encode signed_cmmd.signature)
+          Network.Node.send_payment_with_raw_sig ~logger ~sender_pub_key
+            ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
+            ~valid_until ~raw_signature untimed_node_b
         with
         | Ok { nonce; _ } ->
             Malleable_error.soft_error_format ~value:()

@@ -332,7 +332,7 @@ let transaction_id_to_string id =
   Yojson.Basic.to_string (Graphql_lib.Scalars.TransactionId.serialize id)
 
 let send_payment_with_raw_sig t ~sender_pub_key ~receiver_pub_key ~amount ~fee
-    ~nonce ~memo ~(valid_until : Mina_numbers.Global_slot.t) ~raw_signature =
+    ~nonce ~memo ~(valid_until : Mina_numbers.Global_slot_since_genesis.t) ~raw_signature =
   [%log' info t.logger] "Sending a payment with raw signature"
     ~metadata:t.logger_metadata ;
   let open Deferred.Or_error.Let_syntax in
@@ -341,7 +341,7 @@ let send_payment_with_raw_sig t ~sender_pub_key ~receiver_pub_key ~amount ~fee
     let input =
       Mina_graphql.Types.Input.SendPaymentInput.make_input ~from:sender_pub_key
         ~to_:receiver_pub_key ~amount ~fee ~memo ~nonce
-        ~valid_until:(Mina_numbers.Global_slot.to_uint32 valid_until)
+        ~valid_until:(Mina_numbers.Global_slot_since_genesis.to_uint32 valid_until)
         ()
     in
     let variables = makeVariables ~input ~rawSignature:raw_signature () in
@@ -748,7 +748,7 @@ let get_account_update t ~account_id =
             let%bind cliff_time =
               match tm with
               | `String s ->
-                  return @@ Mina_numbers.Global_slot.of_string s
+                  return @@ Mina_numbers.Global_slot_since_genesis.of_string s
               | _ ->
                   fail
                     (Error.of_string
@@ -757,7 +757,7 @@ let get_account_update t ~account_id =
             let%bind vesting_period =
               match period with
               | `String s ->
-                  return @@ Mina_numbers.Global_slot.of_string s
+                  return @@ Mina_numbers.Global_slot_span.of_string s
               | _ ->
                   fail
                     (Error.of_string

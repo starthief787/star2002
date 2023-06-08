@@ -87,9 +87,9 @@ module type Amount_intf = sig
 
     val equal : t -> t -> bool
 
-    val is_pos : t -> bool
-
     val is_neg : t -> bool
+
+    val is_non_neg : t -> bool
 
     val negate : t -> t
 
@@ -125,7 +125,7 @@ module type Account_id_intf = sig
   val derive_token_id : owner:t -> token_id
 end
 
-module type Global_slot_intf = sig
+module type Global_slot_since_genesis_intf = sig
   include Iffable
 
   val zero : t
@@ -133,6 +133,14 @@ module type Global_slot_intf = sig
   val ( > ) : t -> t -> bool
 
   val equal : t -> t -> bool
+end
+
+module type Global_slot_span_intf = sig
+  include Iffable
+
+  val zero : t
+
+  val ( > ) : t -> t -> bool
 end
 
 module type Verification_key_hash_intf = sig
@@ -146,9 +154,9 @@ end
 module type Timing_intf = sig
   include Iffable
 
-  type global_slot
+  type global_slot_span
 
-  val vesting_period : t -> global_slot
+  val vesting_period : t -> global_slot_span
 end
 
 module type Token_id_intf = sig
@@ -187,7 +195,6 @@ module Local_state = struct
     module V1 = struct
       type ( 'stack_frame
            , 'call_stack
-           , 'token_id
            , 'signed_amount
            , 'ledger
            , 'bool
@@ -197,7 +204,6 @@ module Local_state = struct
            t =
             ( 'stack_frame
             , 'call_stack
-            , 'token_id
             , 'signed_amount
             , 'ledger
             , 'bool
@@ -212,7 +218,6 @@ module Local_state = struct
         ; call_stack : 'call_stack
         ; transaction_commitment : 'comm
         ; full_transaction_commitment : 'comm
-        ; token_id : 'token_id
         ; excess : 'signed_amount
         ; supply_increase : 'signed_amount
         ; ledger : 'ledger
@@ -225,14 +230,13 @@ module Local_state = struct
     end
   end]
 
-  let typ stack_frame call_stack token_id excess supply_increase ledger bool
-      comm length failure_status_tbl =
+  let typ stack_frame call_stack excess supply_increase ledger bool comm length
+      failure_status_tbl =
     Pickles.Impls.Step.Typ.of_hlistable
       [ stack_frame
       ; call_stack
       ; comm
       ; comm
-      ; token_id
       ; excess
       ; supply_increase
       ; ledger
@@ -251,7 +255,6 @@ module Local_state = struct
         type t =
           ( Mina_base.Stack_frame.Digest.Stable.V1.t
           , Mina_base.Call_stack_digest.Stable.V1.t
-          , Token_id.Stable.V2.t
           , ( Currency.Amount.Stable.V1.t
             , Sgn.Stable.V1.t )
             Currency.Signed_poly.Stable.V1.t
@@ -274,7 +277,6 @@ module Local_state = struct
     type t =
       ( Stack_frame.Digest.Checked.t
       , Call_stack_digest.Checked.t
-      , Token_id.Checked.t
       , Currency.Amount.Signed.Checked.t
       , Ledger_hash.var
       , Boolean.var
@@ -532,7 +534,7 @@ module type Account_intf = sig
 
     val set_zkapp_uri : t -> controller
 
-    val edit_sequence_state : t -> controller
+    val edit_action_state : t -> controller
 
     val set_token_symbol : t -> controller
 
@@ -606,13 +608,13 @@ module type Account_intf = sig
 
   val verification_key_hash : t -> verification_key_hash
 
-  val last_sequence_slot : t -> global_slot
+  val last_action_slot : t -> global_slot
 
-  val set_last_sequence_slot : global_slot -> t -> t
+  val set_last_action_slot : global_slot -> t -> t
 
-  val sequence_state : t -> field Pickles_types.Vector.Vector_5.t
+  val action_state : t -> field Pickles_types.Vector.Vector_5.t
 
-  val set_sequence_state : field Pickles_types.Vector.Vector_5.t -> t -> t
+  val set_action_state : field Pickles_types.Vector.Vector_5.t -> t -> t
 
   type zkapp_uri
 
@@ -724,7 +726,10 @@ module type Inputs_intf = sig
 
   module Controller : Controller_intf with type bool := Bool.t
 
-  module Global_slot : Global_slot_intf with type bool := Bool.t
+  module Global_slot_since_genesis :
+    Global_slot_since_genesis_intf with type bool := Bool.t
+
+  module Global_slot_span : Global_slot_span_intf with type bool := Bool.t
 
   module Nonce : sig
     include Iffable with type bool := Bool.t
@@ -735,7 +740,9 @@ module type Inputs_intf = sig
   module State_hash : Iffable with type bool := Bool.t
 
   module Timing :
-    Timing_intf with type bool := Bool.t and type global_slot := Global_slot.t
+    Timing_intf
+      with type bool := Bool.t
+       and type global_slot_span := Global_slot_span.t
 
   module Zkapp_uri : Iffable with type bool := Bool.t
 
@@ -760,7 +767,7 @@ module type Inputs_intf = sig
        and type balance := Balance.t
        and type receipt_chain_hash := Receipt_chain_hash.t
        and type bool := Bool.t
-       and type global_slot := Global_slot.t
+       and type global_slot := Global_slot_since_genesis.t
        and type field := Field.t
        and type verification_key := Verification_key.t
        and type verification_key_hash := Verification_key_hash.t
@@ -856,7 +863,6 @@ module type Inputs_intf = sig
     type t =
       ( Stack_frame.t
       , Call_stack.t
-      , Token_id.t
       , Amount.Signed.t
       , Ledger.t
       , Bool.t
@@ -891,7 +897,7 @@ module type Inputs_intf = sig
 
     val set_supply_increase : t -> Amount.Signed.t -> t
 
-    val block_global_slot : t -> Global_slot.t
+    val block_global_slot : t -> Global_slot_since_genesis.t
   end
 end
 
@@ -1038,24 +1044,27 @@ module Make (Inputs : Inputs_intf) = struct
     ; new_call_stack
     }
 
-  let update_sequence_state (sequence_state : _ Pickles_types.Vector.t) actions
-      ~txn_global_slot ~last_sequence_slot =
+  let update_action_state (action_state : _ Pickles_types.Vector.t) actions
+      ~txn_global_slot ~last_action_slot =
     (* Push events to s1. *)
-    let [ s1'; s2'; s3'; s4'; s5' ] = sequence_state in
+    let [ s1'; s2'; s3'; s4'; s5' ] = action_state in
     let is_empty = Actions.is_empty actions in
     let s1_updated = Actions.push_events s1' actions in
     let s1 = Field.if_ is_empty ~then_:s1' ~else_:s1_updated in
     (* Shift along if not empty and last update wasn't this slot *)
-    let is_this_slot = Global_slot.equal txn_global_slot last_sequence_slot in
+    let is_this_slot =
+      Global_slot_since_genesis.equal txn_global_slot last_action_slot
+    in
     let is_empty_or_this_slot = Bool.(is_empty ||| is_this_slot) in
     let s5 = Field.if_ is_empty_or_this_slot ~then_:s5' ~else_:s4' in
     let s4 = Field.if_ is_empty_or_this_slot ~then_:s4' ~else_:s3' in
     let s3 = Field.if_ is_empty_or_this_slot ~then_:s3' ~else_:s2' in
     let s2 = Field.if_ is_empty_or_this_slot ~then_:s2' ~else_:s1' in
-    let last_sequence_slot =
-      Global_slot.if_ is_empty ~then_:last_sequence_slot ~else_:txn_global_slot
+    let last_action_slot =
+      Global_slot_since_genesis.if_ is_empty ~then_:last_action_slot
+        ~else_:txn_global_slot
     in
-    (([ s1; s2; s3; s4; s5 ] : _ Pickles_types.Vector.t), last_sequence_slot)
+    (([ s1; s2; s3; s4; s5 ] : _ Pickles_types.Vector.t), last_action_slot)
 
   let apply ~(constraint_constants : Genesis_constants.Constraint_constants.t)
       ~(is_start : [ `Yes of _ Start_data.t | `No | `Compute of _ Start_data.t ])
@@ -1073,23 +1082,23 @@ module Make (Inputs : Inputs_intf) = struct
       ((global_state : Global_state.t), (local_state : Local_state.t)) =
     let open Inputs in
     let is_start' =
-      let is_start' =
+      let is_empty_call_forest =
         Call_forest.is_empty (Stack_frame.calls local_state.stack_frame)
       in
       ( match is_start with
       | `Compute _ ->
           ()
       | `Yes _ ->
-          assert_ ~pos:__POS__ is_start'
+          assert_ ~pos:__POS__ is_empty_call_forest
       | `No ->
-          assert_ ~pos:__POS__ (Bool.not is_start') ) ;
+          assert_ ~pos:__POS__ (Bool.not is_empty_call_forest) ) ;
       match is_start with
       | `Yes _ ->
           Bool.true_
       | `No ->
           Bool.false_
       | `Compute _ ->
-          is_start'
+          is_empty_call_forest
     in
     let will_succeed =
       match is_start with
@@ -1188,13 +1197,7 @@ module Make (Inputs : Inputs_intf) = struct
             (tx_commitment, full_tx_commitment)
       in
       let local_state =
-        { local_state with
-          transaction_commitment
-        ; full_transaction_commitment
-        ; token_id =
-            Token_id.if_ is_start' ~then_:Token_id.default
-              ~else_:local_state.token_id
-        }
+        { local_state with transaction_commitment; full_transaction_commitment }
       in
       ( (account_update, remaining, call_stack)
       , account_update_forest
@@ -1215,6 +1218,23 @@ module Make (Inputs : Inputs_intf) = struct
         (Account_update.public_key account_update)
         (Account_update.token_id account_update)
         (a, inclusion_proof)
+    in
+    (* delegate to public key if new account using default token *)
+    let a =
+      let self_delegate =
+        let account_update_token_id = Account_update.token_id account_update in
+        Bool.(
+          account_is_new
+          &&& Token_id.equal account_update_token_id Token_id.default)
+      in
+      (* in-SNARK, a new account has the empty public key here
+         in that case, use the public key from the account update, not the account
+      *)
+      Account.set_delegate
+        (Public_key.if_ self_delegate
+           ~then_:(Account_update.public_key account_update)
+           ~else_:(Account.delegate a) )
+        a
     in
     let matching_verification_key_hashes =
       Inputs.Bool.(
@@ -1323,7 +1343,7 @@ module Make (Inputs : Inputs_intf) = struct
       in
       let vesting_period = Timing.vesting_period timing in
       (* Assert that timing is valid, otherwise we may have a division by 0. *)
-      assert_ ~pos:__POS__ Global_slot.(vesting_period > zero) ;
+      assert_ ~pos:__POS__ Global_slot_span.(vesting_period > zero) ;
       let a = Account.set_timing a timing in
       (a, local_state)
     in
@@ -1418,7 +1438,7 @@ module Make (Inputs : Inputs_intf) = struct
               ~else_:local_state.supply_increase
         }
       in
-      let is_receiver = Amount.Signed.is_pos actual_balance_change in
+      let is_receiver = Amount.Signed.is_non_neg actual_balance_change in
       let local_state =
         let controller =
           Controller.if_ is_receiver
@@ -1544,30 +1564,30 @@ module Make (Inputs : Inputs_intf) = struct
       let a = Account.set_verification_key verification_key a in
       (a, local_state)
     in
-    (* Update sequence state. *)
+    (* Update action state. *)
     let a, local_state =
       let actions = Account_update.Update.actions account_update in
-      let last_sequence_slot = Account.last_sequence_slot a in
-      let sequence_state, last_sequence_slot =
-        update_sequence_state (Account.sequence_state a) actions
-          ~txn_global_slot ~last_sequence_slot
+      let last_action_slot = Account.last_action_slot a in
+      let action_state, last_action_slot =
+        update_action_state (Account.action_state a) actions ~txn_global_slot
+          ~last_action_slot
       in
       let is_empty =
-        (* also computed in update_sequence_state, but messy to return it *)
+        (* also computed in update_action_state, but messy to return it *)
         Actions.is_empty actions
       in
       let has_permission =
         Controller.check ~proof_verifies ~signature_verifies
-          (Account.Permissions.edit_sequence_state a)
+          (Account.Permissions.edit_action_state a)
       in
       let local_state =
-        Local_state.add_check local_state Update_not_permitted_sequence_state
+        Local_state.add_check local_state Update_not_permitted_action_state
           Bool.(is_empty ||| has_permission)
       in
       let a =
         a
-        |> Account.set_sequence_state sequence_state
-        |> Account.set_last_sequence_slot last_sequence_slot
+        |> Account.set_action_state action_state
+        |> Account.set_last_action_slot last_action_slot
       in
       (a, local_state)
     in
@@ -1615,18 +1635,10 @@ module Make (Inputs : Inputs_intf) = struct
     (* Update delegate. *)
     let a, local_state =
       let delegate = Account_update.Update.delegate account_update in
-      let base_delegate =
-        let should_set_new_account_delegate =
-          (* Only accounts for the default token may delegate. *)
-          Bool.(account_is_new &&& account_update_token_is_default)
-        in
-        (* New accounts should have the delegate equal to the public key of the
-           account.
-        *)
-        Public_key.if_ should_set_new_account_delegate
-          ~then_:(Account_update.public_key account_update)
-          ~else_:(Account.delegate a)
-      in
+      (* for new accounts using the default token, we've already
+         set the delegate to the public key
+      *)
+      let base_delegate = Account.delegate a in
       let has_permission =
         Controller.check ~proof_verifies ~signature_verifies
           (Account.Permissions.set_delegate a)
@@ -1737,15 +1749,12 @@ module Make (Inputs : Inputs_intf) = struct
       Amount.Signed.negate (Account_update.balance_change account_update)
     in
     let new_local_fee_excess, `Overflow overflowed =
-      let curr_token : Token_id.t = local_state.token_id in
-      let curr_is_default = Token_id.(equal default) curr_token in
       (* We only allow the default token for fees. *)
-      assert_ ~pos:__POS__ curr_is_default ;
       Bool.(
         assert_ ~pos:__POS__
           ( (not is_start')
           ||| ( account_update_token_is_default
-              &&& Amount.Signed.is_pos local_delta ) )) ;
+              &&& Amount.Signed.is_non_neg local_delta ) )) ;
       let new_local_fee_excess, `Overflow overflow =
         Amount.Signed.add_flagged local_state.excess local_delta
       in
@@ -1910,10 +1919,7 @@ module Make (Inputs : Inputs_intf) = struct
          - supply_increase = Amount.Signed.zero
       *)
       { local_state with
-        token_id =
-          Token_id.if_ is_last_account_update ~then_:Token_id.default
-            ~else_:local_state.token_id
-      ; ledger =
+        ledger =
           Inputs.Ledger.if_ is_last_account_update
             ~then_:(Inputs.Ledger.empty ~depth:0 ())
             ~else_:local_state.ledger

@@ -54,9 +54,9 @@ module Json_layout = struct
       module Timed = struct
         type t =
           { initial_minimum_balance : Currency.Balance.t
-          ; cliff_time : Mina_numbers.Global_slot.t
+          ; cliff_time : Mina_numbers.Global_slot_since_genesis.t
           ; cliff_amount : Currency.Amount.t
-          ; vesting_period : Mina_numbers.Global_slot.t
+          ; vesting_period : Mina_numbers.Global_slot_span.t
           ; vesting_increment : Currency.Amount.t
           }
         [@@deriving yojson, fields, dhall_type, sexp]
@@ -112,7 +112,7 @@ module Json_layout = struct
           ; set_permissions : Auth_required.t [@default None]
           ; set_verification_key : Auth_required.t [@default None]
           ; set_zkapp_uri : Auth_required.t [@default None]
-          ; edit_sequence_state : Auth_required.t [@default None]
+          ; edit_action_state : Auth_required.t [@default None]
           ; set_token_symbol : Auth_required.t [@default None]
           ; increment_nonce : Auth_required.t [@default None]
           ; set_voting_for : Auth_required.t [@default None]
@@ -179,8 +179,8 @@ module Json_layout = struct
           { app_state : Field.t list
           ; verification_key : Verification_key.t option [@default None]
           ; zkapp_version : Zkapp_version.t
-          ; sequence_state : Field.t list
-          ; last_sequence_slot : int
+          ; action_state : Field.t list
+          ; last_action_slot : int
           ; proved_state : bool
           ; zkapp_uri : string
           }
@@ -404,9 +404,9 @@ module Accounts = struct
     module Timed = struct
       type t = Json_layout.Accounts.Single.Timed.t =
         { initial_minimum_balance : Currency.Balance.Stable.Latest.t
-        ; cliff_time : Mina_numbers.Global_slot.Stable.Latest.t
+        ; cliff_time : Mina_numbers.Global_slot_since_genesis.Stable.Latest.t
         ; cliff_amount : Currency.Amount.Stable.Latest.t
-        ; vesting_period : Mina_numbers.Global_slot.Stable.Latest.t
+        ; vesting_period : Mina_numbers.Global_slot_span.Stable.Latest.t
         ; vesting_increment : Currency.Amount.Stable.Latest.t
         }
       [@@deriving bin_io_unversioned, sexp]
@@ -631,6 +631,8 @@ module Proof_keys = struct
         (Json_layout.Proof_keys.Transaction_capacity.of_yojson json)
 
     let small : t = Log_2 2
+
+    let medium : t = Log_2 3
   end
 
   type t =

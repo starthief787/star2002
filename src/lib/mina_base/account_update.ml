@@ -529,9 +529,9 @@ module Update = struct
         type t =
               Mina_wire_types.Mina_base.Account_update.Update.Timing_info.V1.t =
           { initial_minimum_balance : Balance.Stable.V1.t
-          ; cliff_time : Global_slot.Stable.V1.t
+          ; cliff_time : Global_slot_since_genesis.Stable.V1.t
           ; cliff_amount : Amount.Stable.V1.t
-          ; vesting_period : Global_slot.Stable.V1.t
+          ; vesting_period : Global_slot_span.Stable.V1.t
           ; vesting_increment : Amount.Stable.V1.t
           }
         [@@deriving annot, compare, equal, sexp, hash, yojson, hlist, fields]
@@ -545,12 +545,14 @@ module Update = struct
     let gen =
       let open Quickcheck.Let_syntax in
       let%bind initial_minimum_balance = Balance.gen in
-      let%bind cliff_time = Global_slot.gen in
+      let%bind cliff_time = Global_slot_since_genesis.gen in
       let%bind cliff_amount =
         Amount.gen_incl Amount.zero (Balance.to_amount initial_minimum_balance)
       in
       let%bind vesting_period =
-        Global_slot.gen_incl Global_slot.(succ zero) (Global_slot.of_int 10)
+        Global_slot_span.gen_incl
+          Global_slot_span.(succ zero)
+          (Global_slot_span.of_int 10)
       in
       let%map vesting_increment =
         Amount.gen_incl Amount.one (Amount.of_nanomina_int_exn 100)
@@ -565,20 +567,21 @@ module Update = struct
     let to_input (t : t) =
       List.reduce_exn ~f:Random_oracle_input.Chunked.append
         [ Balance.to_input t.initial_minimum_balance
-        ; Global_slot.to_input t.cliff_time
+        ; Global_slot_since_genesis.to_input t.cliff_time
         ; Amount.to_input t.cliff_amount
-        ; Global_slot.to_input t.vesting_period
+        ; Global_slot_span.to_input t.vesting_period
         ; Amount.to_input t.vesting_increment
         ]
 
     let dummy =
-      let slot_unused = Global_slot.zero in
+      let slot_unused = Global_slot_since_genesis.zero in
+      let slot_span_unused = Global_slot_span.zero in
       let balance_unused = Balance.zero in
       let amount_unused = Amount.zero in
       { initial_minimum_balance = balance_unused
       ; cliff_time = slot_unused
       ; cliff_amount = amount_unused
-      ; vesting_period = slot_unused
+      ; vesting_period = slot_span_unused
       ; vesting_increment = amount_unused
       }
 
@@ -607,18 +610,18 @@ module Update = struct
     module Checked = struct
       type t =
         { initial_minimum_balance : Balance.Checked.t
-        ; cliff_time : Global_slot.Checked.t
+        ; cliff_time : Global_slot_since_genesis.Checked.t
         ; cliff_amount : Amount.Checked.t
-        ; vesting_period : Global_slot.Checked.t
+        ; vesting_period : Global_slot_span.Checked.t
         ; vesting_increment : Amount.Checked.t
         }
       [@@deriving hlist]
 
       let constant (t : value) : t =
         { initial_minimum_balance = Balance.var_of_t t.initial_minimum_balance
-        ; cliff_time = Global_slot.Checked.constant t.cliff_time
+        ; cliff_time = Global_slot_since_genesis.Checked.constant t.cliff_time
         ; cliff_amount = Amount.var_of_t t.cliff_amount
-        ; vesting_period = Global_slot.Checked.constant t.vesting_period
+        ; vesting_period = Global_slot_span.Checked.constant t.vesting_period
         ; vesting_increment = Amount.var_of_t t.vesting_increment
         }
 
@@ -632,9 +635,9 @@ module Update = struct
             t ) =
         List.reduce_exn ~f:Random_oracle_input.Chunked.append
           [ Balance.var_to_input initial_minimum_balance
-          ; Global_slot.Checked.to_input cliff_time
+          ; Global_slot_since_genesis.Checked.to_input cliff_time
           ; Amount.var_to_input cliff_amount
-          ; Global_slot.Checked.to_input vesting_period
+          ; Global_slot_span.Checked.to_input vesting_period
           ; Amount.var_to_input vesting_increment
           ]
 
@@ -659,9 +662,9 @@ module Update = struct
     let typ : (Checked.t, t) Typ.t =
       Typ.of_hlistable
         [ Balance.typ
-        ; Global_slot.typ
+        ; Global_slot_since_genesis.typ
         ; Amount.typ
-        ; Global_slot.typ
+        ; Global_slot_span.typ
         ; Amount.typ
         ]
         ~var_to_hlist:Checked.to_hlist ~var_of_hlist:Checked.of_hlist
@@ -671,8 +674,9 @@ module Update = struct
       let open Fields_derivers_zkapps.Derivers in
       let ( !. ) = ( !. ) ~t_fields_annots in
       Fields.make_creator obj ~initial_minimum_balance:!.balance
-        ~cliff_time:!.global_slot ~cliff_amount:!.amount
-        ~vesting_period:!.global_slot ~vesting_increment:!.amount
+        ~cliff_time:!.global_slot_since_genesis
+        ~cliff_amount:!.amount ~vesting_period:!.global_slot_span
+        ~vesting_increment:!.amount
       |> finish "Timing" ~t_toplevel_annots
   end
 
@@ -983,11 +987,25 @@ module Account_precondition = struct
         | Full of Zkapp_precondition.Account.Stable.V2.t
         | Nonce of Account.Nonce.Stable.V1.t
         | Accept
-      [@@deriving sexp, equal, yojson, hash, compare]
+      [@@deriving sexp, yojson, hash, compare]
 
       let to_latest = Fn.id
+
+      let to_full = function
+        | Full s ->
+            s
+        | Nonce n ->
+            { Zkapp_precondition.Account.accept with
+              nonce = Check { lower = n; upper = n }
+            }
+        | Accept ->
+            Zkapp_precondition.Account.accept
+
+      let equal p q = Zkapp_precondition.Account.equal (to_full p) (to_full q)
     end
   end]
+
+  [%%define_locally Stable.Latest.(to_full, equal)]
 
   let gen : t Quickcheck.Generator.t =
     Quickcheck.Generator.variant3 Zkapp_precondition.Account.gen
@@ -999,16 +1017,6 @@ module Account_precondition = struct
              Nonce x
          | `C () ->
              Accept )
-
-  let to_full = function
-    | Full s ->
-        s
-    | Nonce n ->
-        { Zkapp_precondition.Account.accept with
-          nonce = Check { lower = n; upper = n }
-        }
-    | Accept ->
-        Zkapp_precondition.Account.accept
 
   let of_full (p : Zkapp_precondition.Account.t) =
     let module A = Zkapp_precondition.Account in
@@ -1048,11 +1056,31 @@ module Account_precondition = struct
     [%test_eq: t] account_precondition
       (account_precondition |> Fd.to_json full |> Fd.of_json full)
 
+  let%test "json roundtrip Full with ignore" =
+    let account_precondition = Full Zkapp_precondition.Account.accept in
+    let module Fd = Fields_derivers_zkapps.Derivers in
+    let full = deriver (Fd.o ()) in
+    equal account_precondition
+      (account_precondition |> Fd.to_json full |> Fd.of_json full)
+
   let%test_unit "json roundtrip nonce" =
     let account_precondition : t = Nonce (Account_nonce.of_int 928472) in
     let module Fd = Fields_derivers_zkapps.Derivers in
     let full = deriver (Fd.o ()) in
     [%test_eq: t] account_precondition
+      (account_precondition |> Fd.to_json full |> Fd.of_json full)
+
+  let%test "json roundtrip Full with nonce" =
+    let n = Account_nonce.of_int 4321 in
+    let account_precondition : t =
+      Full
+        { Zkapp_precondition.Account.accept with
+          nonce = Check { lower = n; upper = n }
+        }
+    in
+    let module Fd = Fields_derivers_zkapps.Derivers in
+    let full = deriver (Fd.o ()) in
+    equal account_precondition
       (account_precondition |> Fd.to_json full |> Fd.of_json full)
 
   let%test_unit "json roundtrip full" =
@@ -1080,7 +1108,7 @@ module Account_precondition = struct
           nonce: {lower: "34928", upper: "34928"},
           receiptChainHash: null, delegate: null,
           state: [null,null,null,null,null,null,null,null],
-          sequenceState: null, provedState: null, isNew: null
+          actionState: null, provedState: null, isNew: null
         }|json}
       |> Yojson.Safe.from_string |> Yojson.Safe.to_string )
 
@@ -1127,7 +1155,7 @@ module Preconditions = struct
         { network : Zkapp_precondition.Protocol_state.Stable.V1.t
         ; account : Account_precondition.Stable.V1.t
         ; valid_while :
-            Mina_numbers.Global_slot.Stable.V1.t
+            Mina_numbers.Global_slot_since_genesis.Stable.V1.t
             Zkapp_precondition.Numeric.Stable.V1.t
         }
       [@@deriving annot, sexp, equal, yojson, hash, hlist, compare, fields]
@@ -1417,7 +1445,8 @@ module Body = struct
         type t = Mina_wire_types.Mina_base.Account_update.Body.Fee_payer.V1.t =
           { public_key : Public_key.Compressed.Stable.V1.t
           ; fee : Fee.Stable.V1.t
-          ; valid_until : Global_slot.Stable.V1.t option [@name "validUntil"]
+          ; valid_until : Global_slot_since_genesis.Stable.V1.t option
+                [@name "validUntil"]
           ; nonce : Account_nonce.Stable.V1.t
           }
         [@@deriving annot, sexp, equal, yojson, hash, compare, hlist, fields]
@@ -1430,7 +1459,8 @@ module Body = struct
       let open Quickcheck.Generator.Let_syntax in
       let%map public_key = Public_key.Compressed.gen
       and fee = Currency.Fee.gen
-      and valid_until = Option.quickcheck_generator Global_slot.gen
+      and valid_until =
+        Option.quickcheck_generator Global_slot_since_genesis.gen
       and nonce = Account.Nonce.gen in
       { public_key; fee; valid_until; nonce }
 
@@ -1451,7 +1481,7 @@ module Body = struct
       Fields.make_creator obj ~public_key:!.public_key ~fee:!.fee
         ~valid_until:
           !.Fields_derivers_zkapps.Derivers.(
-              option ~js_type:Or_undefined @@ uint32 @@ o ())
+              option ~js_type:Or_undefined @@ global_slot_since_genesis @@ o ())
         ~nonce:!.uint32
       |> finish "FeePayerBody" ~t_toplevel_annots
 
@@ -1475,11 +1505,15 @@ module Body = struct
     ; preconditions =
         { Preconditions.network =
             (let valid_until =
-               Option.value ~default:Global_slot.max_value t.valid_until
+               Option.value ~default:Global_slot_since_genesis.max_value
+                 t.valid_until
              in
              { Zkapp_precondition.Protocol_state.accept with
                global_slot_since_genesis =
-                 Check { lower = Global_slot.zero; upper = valid_until }
+                 Check
+                   { lower = Global_slot_since_genesis.zero
+                   ; upper = valid_until
+                   }
              } )
         ; account = Account_precondition.Nonce t.nonce
         ; valid_while = Ignore
@@ -1503,11 +1537,15 @@ module Body = struct
     ; preconditions =
         { Preconditions.network =
             (let valid_until =
-               Option.value ~default:Global_slot.max_value t.valid_until
+               Option.value ~default:Global_slot_since_genesis.max_value
+                 t.valid_until
              in
              { Zkapp_precondition.Protocol_state.accept with
                global_slot_since_genesis =
-                 Check { lower = Global_slot.zero; upper = valid_until }
+                 Check
+                   { lower = Global_slot_since_genesis.zero
+                   ; upper = valid_until
+                   }
              } )
         ; account = Account_precondition.Nonce t.nonce
         ; valid_while = Ignore
@@ -1740,6 +1778,36 @@ module Body = struct
     ; may_use_token
     ; authorization_kind
     }
+
+  let gen_with_events_and_actions =
+    let open Quickcheck.Generator.Let_syntax in
+    let%map public_key = Public_key.Compressed.gen
+    and token_id = Token_id.gen
+    and update = Update.gen ()
+    and balance_change = Currency.Amount.Signed.gen
+    and increment_nonce = Quickcheck.Generator.bool
+    and events = return [ [| Field.zero |]; [| Field.zero |] ]
+    and actions = return [ [| Field.zero |]; [| Field.zero |] ]
+    and call_data = Field.gen
+    and preconditions = Preconditions.gen
+    and use_full_commitment = Quickcheck.Generator.bool
+    and implicit_account_creation_fee = Quickcheck.Generator.bool
+    and may_use_token = May_use_token.gen
+    and authorization_kind = Authorization_kind.gen in
+    { public_key
+    ; token_id
+    ; update
+    ; balance_change
+    ; increment_nonce
+    ; events
+    ; actions
+    ; call_data
+    ; preconditions
+    ; use_full_commitment
+    ; implicit_account_creation_fee
+    ; may_use_token
+    ; authorization_kind
+    }
 end
 
 module T = struct
@@ -1804,6 +1872,12 @@ module T = struct
   let gen : t Quickcheck.Generator.t =
     let open Quickcheck.Generator.Let_syntax in
     let%map body = Body.gen and authorization = Control.gen_with_dummies in
+    { body; authorization }
+
+  let gen_with_events_and_actions : t Quickcheck.Generator.t =
+    let open Quickcheck.Generator.Let_syntax in
+    let%map body = Body.gen_with_events_and_actions
+    and authorization = Control.gen_with_dummies in
     { body; authorization }
 
   let quickcheck_generator : t Quickcheck.Generator.t = gen
@@ -1913,7 +1987,7 @@ let protocol_state_precondition (t : t) : Zkapp_precondition.Protocol_state.t =
   t.body.preconditions.network
 
 let valid_while_precondition (t : t) :
-    Mina_numbers.Global_slot.t Zkapp_precondition.Numeric.t =
+    Mina_numbers.Global_slot_since_genesis.t Zkapp_precondition.Numeric.t =
   t.body.preconditions.valid_while
 
 let public_key (t : t) : Public_key.Compressed.t = t.body.public_key

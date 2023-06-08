@@ -45,8 +45,6 @@ let sample_block_sexp =
               0x0000000000000000000000000000000000000000000000000000000000000000)
              (full_transaction_commitment
               0x0000000000000000000000000000000000000000000000000000000000000000)
-             (token_id
-              0x0000000000000000000000000000000000000000000000000000000000000001)
              (excess ((magnitude 0) (sgn Pos)))
              (supply_increase ((magnitude 0) (sgn Pos))) (ledger 0)
              (success true) (account_update_index 0) (failure_status_tbl ())
@@ -69,8 +67,6 @@ let sample_block_sexp =
               0x0000000000000000000000000000000000000000000000000000000000000000)
              (full_transaction_commitment
               0x0000000000000000000000000000000000000000000000000000000000000000)
-             (token_id
-              0x0000000000000000000000000000000000000000000000000000000000000001)
              (excess ((magnitude 0) (sgn Pos)))
              (supply_increase ((magnitude 0) (sgn Pos))) (ledger 0)
              (success true) (account_update_index 0) (failure_status_tbl ())
@@ -97,8 +93,8 @@ let sample_block_sexp =
        (last_vrf_output
         "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000")
        (total_currency 10016120000000000)
-       (curr_global_slot ((slot_number 6) (slots_per_epoch 576)))
-       (global_slot_since_genesis 6)
+       (curr_global_slot ((slot_number (Since_hard_fork 6)) (slots_per_epoch 576)))
+       (global_slot_since_genesis (Since_genesis 6))
        (staking_epoch_data
         ((ledger
           ((hash
@@ -140,14 +136,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg)
-                 (receiver_pk
+                ((receiver_pk
                   B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg)
                  (amount 1000000001))))))
             (signer B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg)
@@ -162,14 +156,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qrA2eWb592uRLtH5ohzQnx7WTLYp2jGirCw5M7Fb9gTf1RrvTPqX)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qrA2eWb592uRLtH5ohzQnx7WTLYp2jGirCw5M7Fb9gTf1RrvTPqX)
-                 (receiver_pk
+                ((receiver_pk
                   B62qkYgXYkzT5fuPNhMEHk8ouiThjNNDSTMnpBAuaf6q7pNnCFkUqtz)
                  (amount 1000000001))))))
             (signer B62qrA2eWb592uRLtH5ohzQnx7WTLYp2jGirCw5M7Fb9gTf1RrvTPqX)
@@ -184,14 +176,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93)
-                 (receiver_pk
+                ((receiver_pk
                   B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7)
                  (amount 1000000001))))))
             (signer B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93)
@@ -206,14 +196,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qp5sdhH48MurWgtHNkXUTphEmUfcKVmZFspYAqxcKZ7YxaPF1pyF)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qp5sdhH48MurWgtHNkXUTphEmUfcKVmZFspYAqxcKZ7YxaPF1pyF)
-                 (receiver_pk
+                ((receiver_pk
                   B62qji8zLZEuMUpZnRN3FHgsgnybYhhMFBBMcLAwGGLR3hTdfkhmM4X)
                  (amount 1000000001))))))
             (signer B62qp5sdhH48MurWgtHNkXUTphEmUfcKVmZFspYAqxcKZ7YxaPF1pyF)
@@ -228,14 +216,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7)
-                 (receiver_pk
+                ((receiver_pk
                   B62qqMGFkBEtgGs2Gi6AWd1Abn9yzXdj5HRMzm95uwbJ8Wa88C7urCD)
                  (amount 1000000001))))))
             (signer B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7)
@@ -250,14 +236,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qr4GMdg4ZVk1Y6BXaDHxgFRtCsZm2sZiyn7PCmubTZnAi3iZDDxq)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qr4GMdg4ZVk1Y6BXaDHxgFRtCsZm2sZiyn7PCmubTZnAi3iZDDxq)
-                 (receiver_pk
+                ((receiver_pk
                   B62qpaA93gHfmvNoH9DLGgxreGnijhh5aui4duxiV3foX4p5ay5RNis)
                  (amount 1000000001))))))
             (signer B62qr4GMdg4ZVk1Y6BXaDHxgFRtCsZm2sZiyn7PCmubTZnAi3iZDDxq)
@@ -272,14 +256,12 @@ let sample_block_sexp =
                ((fee 0)
                 (fee_payer_pk
                  B62qpgjtMzVpodthL3kMfXAAzzv1kgGZRMEeLv592u4hSVQKCzTGLvA)
-                (nonce 0) (valid_until 4294967295)
+                (nonce 0) (valid_until (Since_genesis 4294967295))
                 (memo
                  "\000 \014WQ\192&\229C\178\232\171.\176`\153\218\161\209\229\223Gw\143w\135\250\171E\205\241/\227\168")))
               (body
                (Payment
-                ((source_pk
-                  B62qpgjtMzVpodthL3kMfXAAzzv1kgGZRMEeLv592u4hSVQKCzTGLvA)
-                 (receiver_pk
+                ((receiver_pk
                   B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93)
                  (amount 1000000001))))))
             (signer B62qpgjtMzVpodthL3kMfXAAzzv1kgGZRMEeLv592u4hSVQKCzTGLvA)
@@ -292,6 +274,8 @@ let sample_block_sexp =
  (delta_transition_chain_proof
   (6015213778799164743705381332887935226819166012453542567863482729120123228169
    ()))
+ (protocol_version ((major 1) (minor 0) (patch 0)))
+ (proposed_protocol_version ())
  (accounts_accessed
   ((2
     ((public_key B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93)
@@ -306,7 +290,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -323,7 +307,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -340,7 +324,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -357,7 +341,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -374,7 +358,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -391,7 +375,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -408,7 +392,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -425,7 +409,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -442,7 +426,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -459,7 +443,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -476,7 +460,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))
@@ -493,7 +477,7 @@ let sample_block_sexp =
       ((edit_state Signature) (access None) (send Signature) (receive None)
        (set_delegate Signature) (set_permissions Signature)
        (set_verification_key Signature) (set_zkapp_uri Signature)
-       (edit_sequence_state Signature) (set_token_symbol Signature)
+       (edit_action_state Signature) (set_token_symbol Signature)
        (increment_nonce Signature) (set_voting_for Signature)
        (set_timing Signature)))
      (zkapp ())))))
@@ -538,7 +522,6 @@ let sample_block_json =
                 "call_stack": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "transaction_commitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "full_transaction_commitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "token_id": "wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf",
                 "excess": {
                   "magnitude": "0",
                   "sgn": [
@@ -573,7 +556,6 @@ let sample_block_json =
                 "call_stack": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "transaction_commitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "full_transaction_commitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "token_id": "wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf",
                 "excess": {
                   "magnitude": "0",
                   "sgn": [
@@ -638,10 +620,10 @@ let sample_block_json =
           "last_vrf_output": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
           "total_currency": "10016120000000000",
           "curr_global_slot": {
-            "slot_number": "6",
+            "slot_number": ["Since_hard_fork","6"],
             "slots_per_epoch": "576"
           },
-          "global_slot_since_genesis": "6",
+          "global_slot_since_genesis": ["Since_genesis","6"],
           "staking_epoch_data": {
             "ledger": {
               "hash": "jxWeLYSia8TdyUCVupiciBjxqqR1wXFRhTBvbZGwybDYLohXopX",
@@ -692,13 +674,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg",
                         "receiver_pk": "B62qiy32p8kAKnny8ZFwoMhYpBppM1DWVCqAPBYNcXnsAHhnfAAuXgg",
                         "amount": "1000000001"
                       }
@@ -721,13 +702,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qrA2eWb592uRLtH5ohzQnx7WTLYp2jGirCw5M7Fb9gTf1RrvTPqX",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qrA2eWb592uRLtH5ohzQnx7WTLYp2jGirCw5M7Fb9gTf1RrvTPqX",
                         "receiver_pk": "B62qkYgXYkzT5fuPNhMEHk8ouiThjNNDSTMnpBAuaf6q7pNnCFkUqtz",
                         "amount": "1000000001"
                       }
@@ -750,13 +730,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93",
                         "receiver_pk": "B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7",
                         "amount": "1000000001"
                       }
@@ -779,13 +758,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qp5sdhH48MurWgtHNkXUTphEmUfcKVmZFspYAqxcKZ7YxaPF1pyF",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qp5sdhH48MurWgtHNkXUTphEmUfcKVmZFspYAqxcKZ7YxaPF1pyF",
                         "receiver_pk": "B62qji8zLZEuMUpZnRN3FHgsgnybYhhMFBBMcLAwGGLR3hTdfkhmM4X",
                         "amount": "1000000001"
                       }
@@ -808,13 +786,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qqR5XfP9CoC5DALUJX2jBoY6aaoLrN46YpM2NQTSV14qgpoWibL7",
                         "receiver_pk": "B62qqMGFkBEtgGs2Gi6AWd1Abn9yzXdj5HRMzm95uwbJ8Wa88C7urCD",
                         "amount": "1000000001"
                       }
@@ -837,13 +814,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qr4GMdg4ZVk1Y6BXaDHxgFRtCsZm2sZiyn7PCmubTZnAi3iZDDxq",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qr4GMdg4ZVk1Y6BXaDHxgFRtCsZm2sZiyn7PCmubTZnAi3iZDDxq",
                         "receiver_pk": "B62qpaA93gHfmvNoH9DLGgxreGnijhh5aui4duxiV3foX4p5ay5RNis",
                         "amount": "1000000001"
                       }
@@ -866,13 +842,12 @@ let sample_block_json =
                       "fee": "0",
                       "fee_payer_pk": "B62qpgjtMzVpodthL3kMfXAAzzv1kgGZRMEeLv592u4hSVQKCzTGLvA",
                       "nonce": "0",
-                      "valid_until": "4294967295",
+                      "valid_until": ["Since_genesis","4294967295"],
                       "memo": "E4QqiVG8rCzSPqdgMPUP59hA8yMWV6m8YSYGSYBAofr6mLp16UFnM"
                     },
                     "body": [
                       "Payment",
                       {
-                        "source_pk": "B62qpgjtMzVpodthL3kMfXAAzzv1kgGZRMEeLv592u4hSVQKCzTGLvA",
                         "receiver_pk": "B62qpkCEM5N5ddVsYNbFtwWV4bsT9AwuUJXoehFhHUbYYvZ6j3fXt93",
                         "amount": "1000000001"
                       }
@@ -904,6 +879,7 @@ let sample_block_json =
       "jwApG9UCFomnbgkG3Bn8NYisGGLdnwHBqKka9bGCuc1BFPvN4jK",
       []
     ],
+    "protocol_version": { "major": 1, "minor": 0, "patch": 0 },
     "accounts_accessed": [
       [
         2,
@@ -944,7 +920,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1002,7 +978,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1060,7 +1036,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1118,7 +1094,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1176,7 +1152,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1234,7 +1210,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1292,7 +1268,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1350,7 +1326,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1408,7 +1384,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1466,7 +1442,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1524,7 +1500,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [
@@ -1582,7 +1558,7 @@ let sample_block_json =
             "set_zkapp_uri": [
               "Signature"
             ],
-            "edit_sequence_state": [
+            "edit_action_state": [
               "Signature"
             ],
             "set_token_symbol": [

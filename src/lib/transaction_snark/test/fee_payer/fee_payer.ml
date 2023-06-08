@@ -164,7 +164,9 @@ let%test_module "Fee payer tests" =
               let txn_state_view =
                 Mina_state.Protocol_state.Body.view U.genesis_state_body
               in
-              let global_slot = Mina_numbers.Global_slot.of_int global_slot in
+              let global_slot =
+                Mina_numbers.Global_slot_since_genesis.of_int global_slot
+              in
               Init_ledger.init (module Ledger.Ledger_inner) init_ledger ledger ;
               ( match
                   let mask = Ledger.Mask.create ~depth:U.ledger_depth () in
@@ -274,4 +276,42 @@ let%test_module "Fee payer tests" =
           in
           test_empty_update ~new_account:false existing_account_spec init_ledger
             (fst spec.sender) )
+
+    let%test_unit "No account updates, only fee payer in a zkapp transaction" =
+      Quickcheck.test ~trials:1 U.gen_snapp_ledger
+        ~f:(fun ({ init_ledger; specs }, _new_kp) ->
+          let fee = Fee.of_nanomina_int_exn 1_000_000 in
+          let spec = List.hd_exn specs in
+          let test_spec : Spec.t =
+            { sender = spec.sender
+            ; fee
+            ; fee_payer = None
+            ; receivers = []
+            ; amount = Amount.zero
+            ; zkapp_account_keypairs = []
+            ; memo
+            ; new_zkapp_account = false
+            ; snapp_update = Account_update.Update.dummy
+            ; current_auth = Permissions.Auth_required.Signature
+            ; call_data = Snark_params.Tick.Field.zero
+            ; events = []
+            ; actions = []
+            ; preconditions = None
+            }
+          in
+          Ledger.with_ledger ~depth:U.ledger_depth ~f:(fun ledger ->
+              Async.Thread_safe.block_on_async_exn (fun () ->
+                  Mina_transaction_logic.For_tests.Init_ledger.init
+                    (module Ledger.Ledger_inner)
+                    init_ledger ledger ;
+                  let open Async.Deferred.Let_syntax in
+                  let%bind zkapp_command =
+                    let zkapp_prover_and_vk = (zkapp_prover, vk) in
+                    Transaction_snark.For_tests.update_states
+                      ~zkapp_prover_and_vk ~constraint_constants test_spec
+                  in
+                  assert (
+                    List.is_empty
+                      (Zkapp_command.account_updates_list zkapp_command) ) ;
+                  U.check_zkapp_command_with_merges_exn ledger [ zkapp_command ] ) ) )
   end )

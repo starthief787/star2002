@@ -49,6 +49,8 @@ end
 module type Resource_pool_diff_intf = sig
   type pool
 
+  val label : string
+
   type t [@@deriving sexp, to_yojson]
 
   type verified [@@deriving sexp, to_yojson]
@@ -380,7 +382,7 @@ module type Base_ledger_intf = sig
 
   val get : t -> Location.t -> Account.t option
 
-  val accounts : t -> Account_id.Set.t
+  val accounts : t -> Account_id.Set.t Deferred.t
 
   val get_batch : t -> Location.t list -> (Location.t * Account.t option) list
 

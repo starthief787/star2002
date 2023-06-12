@@ -41,28 +41,52 @@ module Make
     -> num_bits:int
     -> G.t
 
+  (** Interface for the scalar field of the curve *)
   module type Scalar_field_intf = sig
     module Constant : sig
+      (** Represents an element of the field *)
       type t
 
+      (** The size in bits for the canonical representation of a field
+          element *)
       val size_in_bits : int
 
+      (** The neutral element for the addition *)
       val zero : t
 
+      (** The neutral element for the multiplication *)
       val one : t
 
+      (** [of_int x] builds an element of type [t]. [x] is supposed to be the
+          canonical representation of the field element.
+          TODO: what if [x > p] if [p] is the ordre of the field?
+      *)
       val of_int : int -> t
 
+      (** [a * b] returns the unique value [c] such that [a * b = c mod p] where
+          [p] is the order of the field *)
       val ( * ) : t -> t -> t
 
+      (** [a / b] returns the unique value [c] such that [a * c = b mod p] where
+          [p] is the order of the field
+          TODO: what about [b = 0]? *)
       val ( / ) : t -> t -> t
 
+      (** [a + b] returns the unique value [c] such that [a + b = c mod p] where
+          [p] is the order of the field *)
       val ( + ) : t -> t -> t
 
+      (** [a - b] returns the unique value [c] such that [a + c = b mod p] where
+          [p] is the order of the field *)
       val ( - ) : t -> t -> t
 
+      (** [inv x] returns the unique value [y] such that [x * y = one mod p]
+          where [p] is the order of the field
+          TODO: what about [x = 0]? *)
       val inv : t -> t
 
+      (** [negate x] returns the unique value [y] such that [x + y = zero mod p]
+          where [p] is the order of the field *)
       val negate : t -> t
 
       val to_bigint : t -> Impl.Bigint.t

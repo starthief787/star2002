@@ -108,13 +108,7 @@ module Type1 = struct
 
   let map (Shifted_value x) ~f = Shifted_value (f x)
 
-  module Shift : sig
-    type 'f t = private { c : 'f; scale : 'f }
-
-    val create : (module Field_intf with type t = 'f) -> 'f t
-
-    val map : 'a t -> f:('a -> 'b) -> 'b t
-  end = struct
+  module Shift = struct
     type 'f t = { c : 'f; scale : 'f }
 
     let map t ~f = { c = f t.c; scale = f t.scale }
@@ -166,13 +160,7 @@ module Type2 = struct
 
   let map (Shifted_value x) ~f = Shifted_value (f x)
 
-  module Shift : sig
-    type 'f t = private 'f
-
-    val create : (module Field_intf with type t = 'f) -> 'f t
-
-    val map : 'a t -> f:('a -> 'b) -> 'b t
-  end = struct
+  module Shift = struct
     type 'f t = 'f
 
     let map t ~f = f t

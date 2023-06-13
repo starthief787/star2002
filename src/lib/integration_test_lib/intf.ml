@@ -53,64 +53,42 @@ module Engine = struct
 
       val graphql_client : logger:Logger.t -> t -> Test_graphql.t
 
+      val tx_sender: logger:Logger.t -> t -> Tx_sender.t
+
       val send_payment :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> amount:Currency.Amount.t
-        -> fee:Currency.Fee.t
+        -> Command_spec.tx
         -> Test_graphql.signed_command_result Deferred.Or_error.t
 
       val must_send_payment :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> amount:Currency.Amount.t
-        -> fee:Currency.Fee.t
+        -> Command_spec.tx
         -> Test_graphql.signed_command_result Malleable_error.t
 
       val send_payment_with_raw_sig :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> amount:Currency.Amount.t
-        -> fee:Currency.Fee.t
-        -> nonce:Mina_numbers.Account_nonce.t
-        -> memo:string
-        -> valid_until:Mina_numbers.Global_slot_since_genesis.t
-        -> raw_signature:string
+        -> Command_spec.signed_tx
         -> Test_graphql.signed_command_result Deferred.Or_error.t
 
       val must_send_payment_with_raw_sig :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> amount:Currency.Amount.t
-        -> fee:Currency.Fee.t
-        -> nonce:Mina_numbers.Account_nonce.t
-        -> memo:string
-        -> valid_until:Mina_numbers.Global_slot_since_genesis.t
-        -> raw_signature:string
+        -> Command_spec.signed_tx
         -> Test_graphql.signed_command_result Malleable_error.t
 
       val send_delegation :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> fee:Currency.Fee.t
+        -> Command_spec.delegation
         -> Test_graphql.signed_command_result Deferred.Or_error.t
 
       val must_send_delegation :
            logger:Logger.t
         -> t
-        -> sender_pub_key:Signature_lib.Public_key.Compressed.t
-        -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
-        -> fee:Currency.Fee.t
+        -> Command_spec.delegation
         -> Test_graphql.signed_command_result Malleable_error.t
 
       val set_snark_worker :

@@ -226,6 +226,22 @@ type t =
 let create ~logger_metadata ~uri ~enabled ~logger =
   { logger_metadata; uri; enabled; logger }
 
+let create_from_string_default ~endpoint ~logger= 
+  let target = Str.split (Str.regexp ":") endpoint in
+  let host =
+    match List.nth_opt target 0 with Some data -> data | None -> "127.0.0.1"
+  in
+  let port =
+    match List.nth_opt target 1 with
+    | Some data ->
+        int_of_string data
+    | None ->
+        3085
+  in
+  let path = "/graphql" in
+  let uri = Uri.make ~scheme:"http" ~host ~path ~port () in
+  create ~logger_metadata:[] ~uri ~enabled:true ~logger
+
 (* this function will repeatedly attempt to connect to graphql port <num_tries> times before giving up *)
 let exec t ?(num_tries = 10) ?(retry_delay_sec = 30.0) ?(initial_delay_sec = 0.)
     ~logger ~query_name query_obj =
@@ -495,25 +511,9 @@ let get_pooled_zkapp_commands (t : t)
         ] ) ;
   return transaction_ids
 
-let send_delegation t ~sender_pub_key ~receiver_pub_key ~fee =
+let send_unsigned_delegation t ~sender_pub_key ~receiver_pub_key ~fee =
   [%log' info t.logger] "Sending stake delegation" ~metadata:t.logger_metadata ;
   let open Deferred.Or_error.Let_syntax in
-  let sender_pk_str =
-    Signature_lib.Public_key.Compressed.to_string sender_pub_key
-  in
-  [%log' info t.logger] "send_delegation: unlocking account"
-    ~metadata:[ ("sender_pk", `String sender_pk_str) ] ;
-  let unlock_sender_account_graphql () =
-    let unlock_account_obj =
-      Requests.Unlock_account.(
-        make
-        @@ makeVariables ~password:"naughty blue worm"
-             ~public_key:sender_pub_key ())
-    in
-    exec ~logger:t.logger t ~query_name:"unlock_sender_account_graphql"
-      unlock_account_obj
-  in
-  let%bind _ = unlock_sender_account_graphql () in
   let send_delegation_graphql () =
     let input =
       Mina_graphql.Types.Input.SendDelegationInput.make_input
@@ -541,24 +541,24 @@ let send_delegation t ~sender_pub_key ~receiver_pub_key ~fee =
       ] ;
   res
 
-(* if we expect failure, might want retry_on_graphql_error to be false *)
-let send_payment t ~password ~sender_pub_key ~receiver_pub_key ~amount ~fee =
-  [%log' info t.logger] "Sending a payment" ~metadata:t.logger_metadata ;
+let unlock_account t ~password ~sender_pub_key= 
   let open Deferred.Or_error.Let_syntax in
   let sender_pk_str =
     Signature_lib.Public_key.Compressed.to_string sender_pub_key
   in
-  [%log' info t.logger] "send_payment: unlocking account"
+  [%log' info t.logger] "unlocking account"
     ~metadata:[ ("sender_pk", `String sender_pk_str) ] ;
-  let unlock_sender_account_graphql () =
-    let unlock_account_obj =
-      Requests.Unlock_account.(
-        make @@ makeVariables ~password ~public_key:sender_pub_key ())
-    in
-    exec ~logger:t.logger t ~initial_delay_sec:0.
-      ~query_name:"unlock_sender_account_graphql" unlock_account_obj
+  let unlock_account_obj =
+    Requests.Unlock_account.(
+    make @@ makeVariables ~password ~public_key:sender_pub_key ())
   in
-  let%bind _unlock_acct_obj = unlock_sender_account_graphql () in
+  let%bind _ = exec ~logger:t.logger t ~query_name:"unlock_sender_account_graphql" unlock_account_obj in
+  return ()
+
+(* if we expect failure, might want retry_on_graphql_error to be false *)
+let send_unsigned_payment t ~sender_pub_key ~receiver_pub_key ~amount ~fee =
+  [%log' info t.logger] "Sending a payment" ~metadata:t.logger_metadata ;
+  let open Deferred.Or_error.Let_syntax in
   let send_payment_graphql () =
     let input =
       Mina_graphql.Types.Input.SendPaymentInput.make_input ~from:sender_pub_key

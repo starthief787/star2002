@@ -31,11 +31,18 @@ val create :
   -> logger:Logger.t
   -> t
 
+val create_from_string_default: endpoint:string -> logger:Logger.t -> t
+
 val graphql_uri : t -> string
 
-val send_payment :
+val unlock_account : 
+     t 
+  -> password:string 
+  -> sender_pub_key:Signature_lib.Public_key.Compressed.t 
+  -> unit Deferred.Or_error.t
+
+val send_unsigned_payment :
      t
-  -> password:string
   -> sender_pub_key:Signature_lib.Public_key.Compressed.t
   -> receiver_pub_key:Signature_lib.Public_key.Compressed.t
   -> amount:Currency.Amount.t
@@ -64,7 +71,7 @@ val send_test_payments :
   -> fee:Currency.Fee.t
   -> unit Deferred.Or_error.t
 
-val send_delegation :
+val send_unsigned_delegation :
      t
   -> sender_pub_key:Signature_lib.Public_key.Compressed.t
   -> receiver_pub_key:Signature_lib.Public_key.Compressed.t

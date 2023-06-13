@@ -29,7 +29,8 @@ in
             [
               -- Cache test-executive binary
               Cmd.run "artifact-cache-helper.sh test_executive.exe --upload",
-              Cmd.run "artifact-cache-helper.sh logproc.exe --upload"
+              Cmd.run "artifact-cache-helper.sh logproc.exe --upload",
+              Cmd.run "artifact-cache-helper.sh test_reporter.exe --upload"
             ],
         label = "Build test-executive",
         key = "build-test-executive",
@@ -41,13 +42,13 @@ in
     Command.build
       Command.Config::{
         commands =
-            [
-              -- Download test dependencies
+            [  
               Cmd.run "artifact-cache-helper.sh test_executive.exe && chmod +x test_executive.exe",
               Cmd.run "artifact-cache-helper.sh logproc.exe && chmod +x logproc.exe",
+              Cmd.run "artifact-cache-helper.sh test_reporter.exe && chmod +x test_reporter.exe",
 
               -- Execute test based on BUILD image
-              Cmd.run "MINA_DEB_CODENAME=bullseye ; source ./buildkite/scripts/export-git-env-vars.sh && ./buildkite/scripts/run-test-executive.sh ${testName}"
+              Cmd.run "MINA_DEB_CODENAME=bullseye ; source ./buildkite/scripts/export-git-env-vars.sh && ./buildkite/scripts/run-test-executive.sh ${testName} && ./buildkite/scripts/upload-test-results.sh ${testName} && ./buildkite/scripts/upload-partial-coverage-data.sh ${testName}"
             ],
         artifact_paths = [SelectFiles.exactly "." "${testName}.test.log"],
         label = "${testName} integration test",
@@ -84,10 +85,17 @@ in
               -- Download test dependencies
               Cmd.run "artifact-cache-helper.sh test_executive.exe && chmod +x test_executive.exe",
               Cmd.run "artifact-cache-helper.sh logproc.exe && chmod +x logproc.exe",
+              Cmd.run "artifact-cache-helper.sh test_reporter.exe && chmod +x test_reporter.exe",     
               Cmd.run "artifact-cache-helper.sh snarkyjs_test.tar.gz && tar -xzf snarkyjs_test.tar.gz",
 
               -- Execute test based on BUILD image
-              Cmd.run "MINA_DEB_CODENAME=bullseye ; source ./buildkite/scripts/export-git-env-vars.sh && ./buildkite/scripts/run-test-executive.sh ${testName}"
+              Cmd.run "MINA_DEB_CODENAME=bullseye ; source ./buildkite/scripts/export-git-env-vars.sh && ./buildkite/scripts/run-test-executive.sh ${testName}",
+                          
+              -- Upload test report
+              Cmd.run "./buildkite/scripts/upload-test-results.sh ${testName}",
+              
+              -- Upload coverage data report
+              Cmd.run "./buildkite/scripts/upload-partial-coverage-data.sh ${testName}"
             ],
         artifact_paths = [SelectFiles.exactly "." "${testName}.test.log"],
         label = "${testName} integration test",

@@ -4,6 +4,7 @@ open Currency
 open Signature_lib
 open Mina_base
 open Integration_test_lib
+open Coverage_manager
 
 let aws_region = "us-west-2"
 
@@ -40,6 +41,7 @@ module Network_config = struct
     ; aws_route53_zone_id : string
     ; testnet_name : string
     ; deploy_graphql_ingress : bool
+    ; enable_working_dir_persitence : bool
     ; mina_image : string
     ; mina_agent_image : string
     ; mina_bots_image : string
@@ -344,6 +346,7 @@ module Network_config = struct
         ; k8s_context = cluster_id
         ; testnet_name
         ; deploy_graphql_ingress = requires_graphql
+        ; enable_working_dir_persitence = true
         ; mina_image = images.mina
         ; mina_agent_image = images.user_agent
         ; mina_bots_image = images.bots
@@ -402,47 +405,6 @@ module Network_config = struct
       project_id cluster_region cluster_name
       network_config.terraform.testnet_name
 end
-
-(* Responsible for code coverage raw files generatation from pods.
-   Requires tailored mina images with instrumentation and BISECT_SIGTEM env variable set.
-   Function traverse all applicable pods (those which has mina process) and kills them.
-   This operation dumps raw bissect files (.coverage) and downloads it to gcloud bucket.
-   WARNING: operations of test coverage retrieval is destructive (as it kills mina processes).
-*)
-let download_raw_coverage_data pods ~logger =
-  let open Kubernetes_network in
-  let open Malleable_error.Let_syntax in
-  [%log' info logger] "Generating test coverage data..." ;
-  let coverage_files =
-    pods |> Map.to_alist
-    |> Malleable_error.List.fold ~init:[] ~f:(fun acc (_id, pod) ->
-           let pod_id = Node.id pod in
-           let%bind (_ : string) =
-             Node.run_in_container pod ~cmd:[ "pkill"; "mina" ]
-           in
-           [%log' debug logger] "Mina process in '$pod' killed."
-             ~metadata:[ ("pod", `String pod_id) ] ;
-           let%bind files_in_root = Node.list_files pod "." in
-           let%bind coverage_files =
-             files_in_root
-             |> List.filter ~f:(String.is_substring ~substring:".coverage")
-             |> Malleable_error.List.map ~f:(fun coverage_file ->
-                    [%log' debug logger]
-                      "Downloading coverage file to ($file) from $pod'."
-                      ~metadata:
-                        [ ("file", `String coverage_file)
-                        ; ("pod", `String pod_id)
-                        ] ;
-                    let%bind () =
-                      Node.download_file_safe pod ~source_file:coverage_file
-                        ~target_file:coverage_file
-                    in
-                    Malleable_error.return coverage_file )
-           in
-           Malleable_error.return (acc @ coverage_files) )
-  in
-  [%log' info logger] "Test coverage data generated" ;
-  coverage_files
 
 module Network_manager = struct
   type t =
@@ -860,9 +822,10 @@ module Network_manager = struct
   let generate_code_coverage t network =
     if t.generate_code_coverage then
       let open Malleable_error.Let_syntax in
+      let coverage_manager = Coverage_manager.create ~logger:t.logger in
       let%bind _ =
-        download_raw_coverage_data ~logger:t.logger
-          (Kubernetes_network.all_nodes network)
+        Coverage_manager.download_coverage_data_from_nodes coverage_manager
+          ~nodes:(Kubernetes_network.all_nodes network)
       in
       Malleable_error.ok_unit
     else Malleable_error.ok_unit

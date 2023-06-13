@@ -90,10 +90,12 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
         (let%bind sender_pub_key = pub_key_of_node node_c in
          let%bind receiver_pub_key = pub_key_of_node node_b in
          let%bind { hash = txn_hash; _ } =
-           Node.must_send_payment ~logger node_c ~sender_pub_key
-             ~receiver_pub_key
-             ~amount:(Currency.Amount.of_nanomina_int_exn 1_000_000)
-             ~fee:(Currency.Fee.of_nanomina_int_exn 10_000_000)
+           Command_spec.simple_tx_compressed
+            ~sender_pub_key 
+            ~receiver_pub_key 
+            ~amount:(Currency.Amount.of_nanomina_int_exn 1_000_000)
+            ~fee:(Currency.Fee.of_nanomina_int_exn 10_000_000) |>
+           Node.must_send_payment ~logger node_c 
          in
          wait_for t
            (Wait_condition.signed_command_to_be_included_in_frontier ~txn_hash

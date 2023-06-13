@@ -124,6 +124,9 @@ module Node = struct
     Test_graphql.create ~logger_metadata:(logger_metadata node)
       ~uri:(graphql_uri node) ~enabled:node.config.graphql_enabled ~logger
 
+  let tx_sender ~logger node = 
+    Tx_sender.of_graphql_client ~graphql_client:(graphql_client ~logger node) ~logger 
+
   let get_peer_id ~logger t =
     graphql_client ~logger t |> Test_graphql.get_peer_id
 
@@ -147,10 +150,10 @@ module Node = struct
     graphql_client ~logger t |> Test_graphql.get_account_update ~account_id
 
   (* if we expect failure, might want retry_on_graphql_error to be false *)
-  let send_payment ~logger t ~sender_pub_key ~receiver_pub_key ~amount ~fee =
-    graphql_client ~logger t
-    |> Test_graphql.send_payment ~sender_pub_key ~receiver_pub_key ~amount ~fee
-         ~password:node_password
+  let send_payment ~logger t spec =
+    let graphql_client = graphql_client ~logger t in
+    let sender = Tx_sender.of_graphql_client ~graphql_client ~logger in
+    Tx_sender.send_unsigned_payment sender ~spec ~password:node_password
 
   let send_zkapp_batch ~logger (t : t)
       ~(zkapp_commands : Mina_base.Zkapp_command.t list) =
@@ -160,16 +163,15 @@ module Node = struct
       ~(pk : Signature_lib.Public_key.Compressed.t) =
     graphql_client ~logger t |> Test_graphql.get_pooled_zkapp_commands ~pk
 
-  let send_delegation ~logger t ~sender_pub_key ~receiver_pub_key ~fee =
-    graphql_client ~logger t
-    |> Test_graphql.send_delegation ~sender_pub_key ~receiver_pub_key ~fee
+  let send_delegation ~logger t spec =
+    let graphql_client = graphql_client ~logger t in
+    let sender = Tx_sender.of_graphql_client ~graphql_client ~logger in
+    Tx_sender.send_unsigned_delegation sender ~spec ~password:node_password
 
-  let send_payment_with_raw_sig ~logger t ~sender_pub_key ~receiver_pub_key
-      ~amount ~fee ~nonce ~memo ~(valid_until : Mina_numbers.Global_slot_since_genesis.t)
-      ~raw_signature =
-    graphql_client ~logger t
-    |> Test_graphql.send_payment_with_raw_sig ~sender_pub_key ~receiver_pub_key
-         ~amount ~fee ~nonce ~memo ~valid_until ~raw_signature
+  let send_payment_with_raw_sig ~logger t spec =
+    let graphql_client = graphql_client ~logger t in
+    let sender = Tx_sender.of_graphql_client ~graphql_client ~logger in
+    Tx_sender.send_signed_payment sender ~spec 
 
   let send_test_payments ~repeat_count ~repeat_delay_ms ~logger t ~senders
       ~receiver_pub_key ~amount ~fee =
@@ -197,20 +199,15 @@ module Node = struct
     get_account_data t ~account_id ~logger
     |> Deferred.bind ~f:Malleable_error.or_hard_error
 
-  let must_send_payment ~logger t ~sender_pub_key ~receiver_pub_key ~amount ~fee
+  let must_send_payment ~logger t spec
       =
-    send_payment ~logger t ~sender_pub_key ~receiver_pub_key ~amount ~fee
-    |> Deferred.bind ~f:Malleable_error.or_hard_error
+    spec |> send_payment ~logger t |> Deferred.bind ~f:Malleable_error.or_hard_error
 
-  let must_send_delegation ~logger t ~sender_pub_key ~receiver_pub_key ~fee =
-    send_delegation ~logger t ~sender_pub_key ~receiver_pub_key ~fee
-    |> Deferred.bind ~f:Malleable_error.or_hard_error
+  let must_send_delegation ~logger t spec =
+    spec |> send_delegation ~logger t |> Deferred.bind ~f:Malleable_error.or_hard_error
 
-  let must_send_payment_with_raw_sig ~logger t ~sender_pub_key ~receiver_pub_key
-      ~amount ~fee ~nonce ~memo ~valid_until ~raw_signature =
-    send_payment_with_raw_sig ~logger t ~sender_pub_key ~receiver_pub_key
-      ~amount ~fee ~nonce ~memo ~valid_until ~raw_signature
-    |> Deferred.bind ~f:Malleable_error.or_hard_error
+  let must_send_payment_with_raw_sig ~logger t spec =
+    spec |> send_payment_with_raw_sig ~logger t |> Deferred.bind ~f:Malleable_error.or_hard_error
 
   let must_set_snark_worker ~logger t ~new_snark_pub_key =
     set_snark_worker ~logger t ~new_snark_pub_key

@@ -57,9 +57,10 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
 
   let send_zkapp ~logger node zkapp_command =
     incr transactions_sent ;
-    send_zkapp ~logger node zkapp_command
-
-  (* Call [f] [n] times in sequence *)
+    Network.Node.tx_sender node ~logger |> Tx_sender.send_zkapp ~zkapp_command |> Deferred.Or_error.map ~f:(fun _status -> ()) 
+    |> Deferred.bind ~f:Malleable_error.or_hard_error 
+    
+  (* Call [f] [n] timndes in sequence *)
   let repeat_seq ~n ~f =
     let open Malleable_error.Let_syntax in
     let rec go n =
@@ -77,8 +78,9 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     let%bind sender_pub_key = pub_key_of_node sender in
     let%bind receiver_pub_key = pub_key_of_node receiver in
     repeat_seq ~n ~f:(fun () ->
-        Network.Node.must_send_payment ~logger sender ~sender_pub_key
-          ~receiver_pub_key ~amount:Currency.Amount.one ~fee
+      Command_spec.simple_tx_compressed ~sender_pub_key
+      ~receiver_pub_key ~amount:Currency.Amount.one ~fee |>
+        Network.Node.must_send_payment ~logger sender
         >>| ignore )
 
   let payment_receiver =
@@ -87,41 +89,26 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
   let send_payment_from_zkapp_account ?expected_failure
       ~(constraint_constants : Genesis_constants.Constraint_constants.t) ~logger
       ~node (sender : Signature_lib.Keypair.t) nonce =
-    let sender_pk = Signature_lib.Public_key.compress sender.public_key in
-    let receiver_pk = payment_receiver in
-    let amount =
-      Currency.Amount.of_fee constraint_constants.account_creation_fee
-    in
-    let memo = "" in
-    let valid_until = Mina_numbers.Global_slot_since_genesis.max_value in
-    let fee = Currency.Fee.of_nanomina_int_exn 1_000_000 in
-    let payload =
-      let common =
-        { Signed_command_payload.Common.Poly.fee
-        ; fee_payer_pk = sender_pk
-        ; nonce
-        ; valid_until
-        ; memo = Signed_command_memo.empty
-        }
-      in
-      let payment_payload = { Payment_payload.Poly.receiver_pk; amount } in
-      let body = Signed_command_payload.Body.Payment payment_payload in
-      { Signed_command_payload.Poly.common; body }
-    in
-    let raw_signature =
-      Signed_command.sign_payload sender.private_key payload
-      |> Signature.Raw.encode
+    let spec: Command_spec.signed_tx = {
+        tx = {
+          sender_pub_key = sender.public_key
+          ;receiver_pub_key = Signature_lib.Public_key.decompress_exn payment_receiver
+          ; amount = Currency.Amount.of_fee constraint_constants.account_creation_fee
+          ; fee = Currency.Fee.of_nanomina_int_exn 1_000_000
+          ; nonce = Some nonce
+          ; memo  = ""
+          ; valid_until = Mina_numbers.Global_slot_since_genesis.max_value
+        };
+         sender_priv_key = sender.private_key
+      }
     in
     match expected_failure with
     | Some failure ->
-        send_invalid_payment ~logger ~sender_pub_key:sender_pk
-          ~receiver_pub_key:receiver_pk ~amount ~fee ~nonce ~memo ~valid_until
-          ~raw_signature ~expected_failure:failure node
+        Network.Node.tx_sender node ~logger |>
+        Tx_sender.send_invalid_payment ~spec ~expected_failure:failure
     | None ->
         incr transactions_sent ;
-        Network.Node.must_send_payment_with_raw_sig ~logger
-          ~sender_pub_key:sender_pk ~receiver_pub_key:receiver_pk ~amount ~fee
-          ~nonce ~memo ~valid_until ~raw_signature node
+        Network.Node.must_send_payment_with_raw_sig ~logger node spec
         |> Malleable_error.ignore_m
 
   let run network t =

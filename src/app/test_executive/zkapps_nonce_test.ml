@@ -61,10 +61,6 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     if !transactions_sent >= needed_for_padding then 0
     else needed_for_padding - !transactions_sent
 
-  let send_zkapp ~logger node zkapp_command =
-    incr transactions_sent ;
-    send_zkapp ~logger node zkapp_command
-
   (* Call [f] [n] times in sequence *)
   let repeat_seq ~n ~f =
     let open Malleable_error.Let_syntax in
@@ -83,8 +79,9 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     let%bind sender_pub_key = pub_key_of_node sender in
     let%bind receiver_pub_key = pub_key_of_node receiver in
     repeat_seq ~n ~f:(fun () ->
-        Network.Node.must_send_payment ~logger sender ~sender_pub_key
-          ~receiver_pub_key ~amount:Currency.Amount.one ~fee
+        Command_spec.simple_tx_compressed ~sender_pub_key
+        ~receiver_pub_key ~amount:Currency.Amount.one ~fee |>
+        Network.Node.must_send_payment ~logger sender 
         >>| ignore )
 
   let run network t =

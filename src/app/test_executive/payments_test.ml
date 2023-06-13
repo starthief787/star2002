@@ -137,7 +137,6 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     let sender_pub_key =
       fish2.keypair.public_key |> Signature_lib.Public_key.compress
     in
-    let sender_priv_key = fish2.keypair.private_key in
     (* hardcoded copy of extra_genesis_accounts[0] and extra_genesis_accounts[1], update here if they change *)
     let receiver_original_balance = Currency.Amount.of_mina_string_exn "100" in
     let sender_original_balance = Currency.Amount.of_mina_string_exn "100" in
@@ -149,34 +148,23 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
       Network.Node.must_get_account_data ~logger untimed_node_b
         ~account_id:sender_account_id
     in
-    let memo = "" in
-    let valid_until = Mina_numbers.Global_slot_since_genesis.max_value in
-    let payload =
-      let common =
-        { Signed_command_payload.Common.Poly.fee
-        ; fee_payer_pk = sender_pub_key
-        ; nonce = sender_current_nonce
-        ; valid_until
-        ; memo = Signed_command_memo.create_from_string_exn memo
-        }
-      in
-      let payment_payload =
-        { Payment_payload.Poly.receiver_pk = receiver_pub_key; amount }
-      in
-      let body = Signed_command_payload.Body.Payment payment_payload in
-      { Signed_command_payload.Poly.common; body }
-    in
-    let raw_signature =
-      Signed_command.sign_payload sender_priv_key payload
-      |> Signature.Raw.encode
-    in
+    let signed_tx: Command_spec.signed_tx = {
+      tx = { amount  = Currency.Amount.of_mina_string_exn "10"
+        ; fee = Currency.Fee.of_mina_string_exn "1"
+        ; receiver_pub_key =  fish1.keypair.public_key
+        ; sender_pub_key =  fish2.keypair.public_key
+        ; memo = ""
+        ; nonce = Some sender_current_nonce
+        ; valid_until = Mina_numbers.Global_slot_since_genesis.max_value
+        ;
+      };
+      sender_priv_key = fish2.keypair.private_key 
+    } in
     (* setup complete *)
     let%bind () =
       section "send a single signed payment between 2 fish accounts"
         (let%bind { hash; _ } =
-           Network.Node.must_send_payment_with_raw_sig ~logger ~sender_pub_key
-             ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
-             ~valid_until ~raw_signature untimed_node_b
+           Network.Node.must_send_payment_with_raw_sig ~logger untimed_node_b signed_tx
          in
          wait_for t
            (Wait_condition.signed_command_to_be_included_in_frontier
@@ -249,9 +237,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
          to conduct a replay attack. expecting a bad nonce"
         (let open Deferred.Let_syntax in
         match%bind
-          Network.Node.send_payment_with_raw_sig ~logger ~sender_pub_key
-            ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
-            ~valid_until ~raw_signature untimed_node_b
+          Network.Node.send_payment_with_raw_sig ~logger untimed_node_b signed_tx
         with
         | Ok { nonce; _ } ->
             Malleable_error.soft_error_format ~value:()
@@ -283,9 +269,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
          Invalid_signature"
         (let open Deferred.Let_syntax in
         match%bind
-          Network.Node.send_payment_with_raw_sig ~logger ~sender_pub_key
-            ~receiver_pub_key ~amount ~fee ~nonce:sender_current_nonce ~memo
-            ~valid_until ~raw_signature untimed_node_b
+          Network.Node.send_payment_with_raw_sig ~logger untimed_node_b signed_tx
         with
         | Ok { nonce; _ } ->
             Malleable_error.soft_error_format ~value:()
@@ -311,13 +295,17 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
     in
     let%bind () =
       section "send a single payment from timed account using available liquid"
-        (let amount = Currency.Amount.of_mina_int_exn 1_000 in
+        (
+        
+        let amount = Currency.Amount.of_mina_int_exn 1_000 in
          let receiver = untimed_node_a in
          let%bind receiver_pub_key = pub_key_of_node receiver in
          let sender = timed_node_c in
          let%bind sender_pub_key = pub_key_of_node sender in
          let receiver_account_id =
            Account_id.create receiver_pub_key Token_id.default
+         in
+         let tx = Command_spec.simple_tx_compressed ~sender_pub_key ~receiver_pub_key ~amount ~fee
          in
          let%bind { total_balance = timed_node_c_total
                   ; liquid_balance_opt = timed_node_c_liquid_opt
@@ -342,8 +330,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
             amount of %s"
            (Currency.Amount.to_mina_string amount) ;
          let%bind { hash; _ } =
-           Network.Node.must_send_payment ~logger timed_node_c ~sender_pub_key
-             ~receiver_pub_key ~amount ~fee
+           Network.Node.must_send_payment ~logger timed_node_c tx
          in
          wait_for t
            (Wait_condition.signed_command_to_be_included_in_frontier
@@ -363,6 +350,7 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
            Network.Node.must_get_account_data ~logger timed_node_c
              ~account_id:sender_account_id
          in
+       
          [%log info] "timed_node_c total balance: %s"
            (Currency.Balance.to_mina_string timed_node_c_total) ;
          [%log info]
@@ -372,8 +360,8 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
          (* TODO: refactor this using new [expect] dsl when it's available *)
          let open Deferred.Let_syntax in
          match%bind
-           Node.send_payment ~logger sender ~sender_pub_key ~receiver_pub_key
-             ~amount ~fee
+           Command_spec.simple_tx_compressed ~sender_pub_key ~receiver_pub_key ~amount ~fee |>
+            Node.send_payment ~logger sender 
          with
          | Ok _ ->
              Malleable_error.soft_error_string ~value:()

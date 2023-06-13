@@ -27,8 +27,8 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
       else
         let%bind hash =
           let%map { hash; nonce; _ } =
-            Engine.Network.Node.must_send_payment ~logger ~sender_pub_key
-              ~receiver_pub_key ~amount ~fee node
+            Command_spec.simple_tx_compressed ~sender_pub_key ~receiver_pub_key ~amount ~fee
+            |> Engine.Network.Node.must_send_payment ~logger node
           in
           [%log info]
             "sending multiple payments: payment #%d sent with hash of %s and \
@@ -134,6 +134,22 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
 
   module G = Visualization.Make_ocamlgraph (X)
 
+  let send_zkapp ~logger node zkapp_command =
+    Engine.Network.Node.tx_sender node ~logger |> Tx_sender.send_zkapp ~zkapp_command |>
+    Deferred.Or_error.map ~f:(fun _status -> ()) |>
+    Deferred.bind ~f:Malleable_error.or_hard_error 
+
+  let send_zkapp_batch ~logger node zkapp_commands =
+    Engine.Network.Node.tx_sender node ~logger |> Tx_sender.send_zkapp_batch ~zkapp_commands |> 
+    Deferred.Or_error.map ~f:(fun _statuses -> ()) |>
+    Deferred.bind ~f:Malleable_error.or_hard_error 
+
+  let send_invalid_zkapp ~logger node zkapp_command substring =
+    Engine.Network.Node.tx_sender node ~logger |> Tx_sender.send_invalid_zkapp ~zkapp_command ~substring
+
+    let send_invalid_payment ~logger node ~spec ~expected_failure =
+      Engine.Network.Node.tx_sender node ~logger |> Tx_sender.send_invalid_payment ~spec  ~expected_failure 
+
   let graph_of_adjacency_list (adj : (string * string list) list) =
     List.fold adj ~init:G.empty ~f:(fun acc (x, xs) ->
         let acc = G.add_vertex acc x in
@@ -201,85 +217,6 @@ module Make (Inputs : Intf.Test.Inputs_intf) = struct
 
   open Inputs.Engine
 
-  let send_zkapp_batch ~logger node zkapp_commands =
-    List.iter zkapp_commands ~f:(fun zkapp_command ->
-        [%log info] "Sending zkApp"
-          ~metadata:
-            [ ("zkapp_command", Mina_base.Zkapp_command.to_yojson zkapp_command)
-            ; ( "memo"
-              , `String
-                  (Mina_base.Signed_command_memo.to_string_hum
-                     zkapp_command.memo ) )
-            ] ) ;
-    match%bind.Deferred
-      Network.Node.send_zkapp_batch ~logger node ~zkapp_commands
-    with
-    | Ok _zkapp_ids ->
-        [%log info] "ZkApp transactions sent" ;
-        Malleable_error.return ()
-    | Error err ->
-        let err_str = Error.to_string_mach err in
-        [%log error] "Error sending zkApp transactions"
-          ~metadata:[ ("error", `String err_str) ] ;
-        Malleable_error.hard_error_format "Error sending zkApp transactions: %s"
-          err_str
-
-  let send_zkapp ~logger node zkapp_command =
-    send_zkapp_batch ~logger node [ zkapp_command ]
-
-  let send_invalid_zkapp ~logger node zkapp_command substring =
-    [%log info] "Sending zkApp, expected to fail" ;
-    match%bind.Deferred
-      Network.Node.send_zkapp_batch ~logger node
-        ~zkapp_commands:[ zkapp_command ]
-    with
-    | Ok _zkapp_ids ->
-        [%log error] "ZkApp transaction succeeded, expected error \"%s\""
-          substring ;
-        Malleable_error.hard_error_format
-          "ZkApp transaction succeeded, expected error \"%s\"" substring
-    | Error err ->
-        let err_str = Error.to_string_mach err in
-        if String.is_substring ~substring err_str then (
-          [%log info] "ZkApp transaction failed as expected"
-            ~metadata:[ ("error", `String err_str) ] ;
-          Malleable_error.return () )
-        else (
-          [%log error]
-            "Error sending zkApp, for a reason other than the expected \"%s\""
-            substring
-            ~metadata:[ ("error", `String err_str) ] ;
-          Malleable_error.hard_error_format
-            "ZkApp transaction failed: %s, but expected \"%s\"" err_str
-            substring )
-
-  let send_invalid_payment ~logger node ~sender_pub_key ~receiver_pub_key
-      ~amount ~fee ~nonce ~memo ~valid_until ~raw_signature ~expected_failure :
-      unit Malleable_error.t =
-    [%log info] "Sending payment, expected to fail" ;
-    let expected_failure = String.lowercase expected_failure in
-    match%bind.Deferred
-      Network.Node.send_payment_with_raw_sig ~logger node ~sender_pub_key
-        ~receiver_pub_key ~amount ~fee ~nonce ~memo ~valid_until ~raw_signature
-    with
-    | Ok _ ->
-        [%log error] "Payment succeeded, expected error \"%s\"" expected_failure ;
-        Malleable_error.hard_error_format
-          "Payment transaction succeeded, expected error \"%s\""
-          expected_failure
-    | Error err ->
-        let err_str = Error.to_string_mach err |> String.lowercase in
-        if String.is_substring ~substring:expected_failure err_str then (
-          [%log info] "Payment failed as expected"
-            ~metadata:[ ("error", `String err_str) ] ;
-          Malleable_error.return () )
-        else (
-          [%log error]
-            "Error sending payment, for a reason other than the expected \"%s\""
-            expected_failure
-            ~metadata:[ ("error", `String err_str) ] ;
-          Malleable_error.hard_error_format
-            "Payment failed: %s, but expected \"%s\"" err_str expected_failure )
 
   let get_account_permissions ~logger node account_id =
     [%log info] "Getting permissions for account"

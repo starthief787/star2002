@@ -30,6 +30,7 @@ type inputs =
   ; mina_image : string
   ; archive_image : string option
   ; debug : bool
+  ; generate_code_coverage : bool
   }
 
 let validate_inputs ~logger inputs (test_config : Test_config.t) :
@@ -69,133 +70,6 @@ let tests : test list =
   ; ("block-reward", (module Block_reward_test.Make : Intf.Test.Functor_intf))
   ]
 
-let report_test_errors ~log_error_set ~internal_error_set =
-  (* TODO: we should be able to show which sections passed as well *)
-  let open Test_error in
-  let open Test_error.Set in
-  let color_eprintf color =
-    Printf.ksprintf (fun s -> Print.eprintf "%s%s%s" color s Bash_colors.none)
-  in
-  let color_of_severity = function
-    | `None ->
-        Bash_colors.green
-    | `Soft ->
-        Bash_colors.yellow
-    | `Hard ->
-        Bash_colors.red
-  in
-  let category_prefix_of_severity = function
-    | `None ->
-        "✓"
-    | `Soft ->
-        "-"
-    | `Hard ->
-        "×"
-  in
-  let print_category_header severity =
-    Printf.ksprintf
-      (color_eprintf
-         (color_of_severity severity)
-         "%s %s\n"
-         (category_prefix_of_severity severity) )
-  in
-  let max_sev a b =
-    match (a, b) with
-    | `Hard, _ | _, `Hard ->
-        `Hard
-    | `Soft, _ | _, `Soft ->
-        `Soft
-    | _ ->
-        `None
-  in
-  let max_severity_of_list severities =
-    List.fold severities ~init:`None ~f:max_sev
-  in
-  let combine_errors error_set =
-    Error_accumulator.combine
-      [ Error_accumulator.map error_set.soft_errors ~f:(fun err -> (`Soft, err))
-      ; Error_accumulator.map error_set.hard_errors ~f:(fun err -> (`Hard, err))
-      ]
-  in
-  let internal_errors = combine_errors internal_error_set in
-  let internal_errors_severity = max_severity internal_error_set in
-  let log_errors = combine_errors log_error_set in
-  let log_errors_severity = max_severity log_error_set in
-  let report_log_errors log_type =
-    color_eprintf
-      (color_of_severity log_errors_severity)
-      "=== Log %ss ===\n" log_type ;
-    Error_accumulator.iter_contexts log_errors ~f:(fun node_id log_errors ->
-        color_eprintf Bash_colors.light_magenta "    %s:\n" node_id ;
-        List.iter log_errors ~f:(fun (severity, { error_message; _ }) ->
-            color_eprintf
-              (color_of_severity severity)
-              "        [%s] %s\n"
-              (Time.to_string error_message.timestamp)
-              (Yojson.Safe.to_string (Logger.Message.to_yojson error_message)) ) ;
-        Print.eprintf "\n" )
-  in
-  (* check invariants *)
-  match log_errors.from_current_context with
-  | _ :: _ ->
-      failwith "all error logs should be contextualized by node id"
-  | [] ->
-      (* report log errors *)
-      Print.eprintf "\n" ;
-      ( match log_errors_severity with
-      | `None ->
-          ()
-      | `Soft ->
-          report_log_errors "Warning"
-      | `Hard ->
-          report_log_errors "Error" ) ;
-      (* report contextualized internal errors *)
-      color_eprintf Bash_colors.magenta "=== Test Results ===\n" ;
-      Error_accumulator.iter_contexts internal_errors ~f:(fun context errors ->
-          print_category_header
-            (max_severity_of_list (List.map errors ~f:fst))
-            "%s" context ;
-          List.iter errors ~f:(fun (severity, { occurrence_time; error }) ->
-              color_eprintf
-                (color_of_severity severity)
-                "    [%s] %s\n"
-                (Time.to_string occurrence_time)
-                (Error.to_string_hum error) ) ) ;
-      (* report non-contextualized internal errors *)
-      List.iter internal_errors.from_current_context
-        ~f:(fun (severity, { occurrence_time; error }) ->
-          color_eprintf
-            (color_of_severity severity)
-            "[%s] %s\n"
-            (Time.to_string occurrence_time)
-            (Error.to_string_hum error) ) ;
-      (* determine if test is passed/failed and exit accordingly *)
-      let test_failed =
-        match (log_errors_severity, internal_errors_severity) with
-        | _, `Hard | _, `Soft ->
-            true
-        (* TODO: re-enable log error checks after libp2p logs are cleaned up *)
-        | `Hard, _ | `Soft, _ | `None, `None ->
-            false
-      in
-      Print.eprintf "\n" ;
-      let exit_code =
-        if test_failed then (
-          color_eprintf Bash_colors.red
-            "The test has failed. See the above errors for details.\n\n" ;
-          match (internal_error_set.exit_code, log_error_set.exit_code) with
-          | None, None ->
-              Some 1
-          | Some exit_code, _ | None, Some exit_code ->
-              Some exit_code )
-        else (
-          color_eprintf Bash_colors.green
-            "The test has completed successfully.\n\n" ;
-          None )
-      in
-      let%bind () = Writer.(flushed (Lazy.force stderr)) in
-      return exit_code
-
 (* TODO: refactor cleanup system (smells like a monad for composing linear resources would help a lot) *)
 
 let dispatch_cleanup ~logger ~pause_cleanup_func ~network_cleanup_func
@@ -217,7 +91,8 @@ let dispatch_cleanup ~logger ~pause_cleanup_func ~network_cleanup_func
       combine [ test_error_set; of_hard_or_error log_engine_cleanup_result ]
     in
     let%bind exit_code =
-      report_test_errors ~log_error_set ~internal_error_set
+      Test_result.calculate_test_result ~log_error_set ~internal_error_set
+        ~logger
     in
     let%bind () = pause_cleanup_func () in
     let%bind () =
@@ -278,6 +153,7 @@ let main inputs =
   let network_config =
     Engine.Network_config.expand ~logger ~test_name ~cli_inputs
       ~debug:inputs.debug ~test_config:T.config ~images
+      ~generate_code_coverage:inputs.generate_code_coverage
   in
   (* resources which require additional cleanup at end of test *)
   let net_manager_ref : Engine.Network_manager.t option ref = ref None in
@@ -325,7 +201,7 @@ let main inputs =
     in
     Monitor.try_with ~here:[%here] ~extract_exn:false (fun () ->
         let open Malleable_error.Let_syntax in
-        let%bind network, dsl =
+        let%bind network, net_manager, dsl =
           let lift ?exit_code =
             Deferred.bind ~f:(Malleable_error.or_hard_error ?exit_code)
           in
@@ -356,7 +232,7 @@ let main inputs =
           let (`Don't_call_in_tests dsl) =
             Dsl.create ~logger ~network ~event_router ~network_state_reader
           in
-          (network, dsl)
+          (network, net_manager, dsl)
         in
         [%log trace] "initializing network abstraction" ;
         let%bind () = Engine.Network.initialize_infra ~logger network in
@@ -383,7 +259,12 @@ let main inputs =
         let%bind () = Malleable_error.List.iter non_seed_pods ~f:start_print in
         [%log info] "Daemons started" ;
         [%log trace] "executing test" ;
-        T.run network dsl )
+        let%bind result = T.run network dsl in
+        let open Malleable_error.Let_syntax in
+        let%bind () =
+          Engine.Network_manager.generate_code_coverage net_manager network
+        in
+        Malleable_error.return result )
   in
   let exit_reason, test_result =
     match monitor_test_result with
@@ -435,6 +316,20 @@ let debug_arg =
   in
   Arg.(value & flag & info [ "debug"; "d" ] ~doc)
 
+let generate_code_coverage_arg =
+  let doc =
+    "Dump coverage data of each mina process to specified bucket. Requires \
+     special version of mina package (built with --instrument-with flag) and \
+     env variable 'BISECT_SIGTERM=yes' in mina container. WARNING: this is \
+     destructive operation as coverage data is generated on sig term signal. \
+     Process iterates of every applicable pod (which have mina process) and \
+     kills it. After that downloads coverage data and upload to gcloud bucket"
+  in
+  let env = Arg.env_var "GENERATE_COVERAGE" ~doc in
+  Arg.(
+    value & flag
+    & info [ "generate-coverage" ] ~env ~docv:"GENERATE_COVERAGE" ~doc)
+
 let help_term = Term.(ret @@ const (`Help (`Plain, None)))
 
 let engine_cmd ((engine_name, (module Engine)) : engine) =
@@ -450,12 +345,20 @@ let engine_cmd ((engine_name, (module Engine)) : engine) =
     Term.(const wrap_cli_inputs $ Engine.Network_config.Cli_inputs.term)
   in
   let inputs_term =
-    let cons_inputs test_inputs test mina_image archive_image debug =
-      { test_inputs; test; mina_image; archive_image; debug }
+    let cons_inputs test_inputs test mina_image archive_image debug
+        generate_code_coverage =
+      { test_inputs
+      ; test
+      ; mina_image
+      ; archive_image
+      ; debug
+      ; generate_code_coverage
+      }
     in
     Term.(
       const cons_inputs $ test_inputs_with_cli_inputs_arg $ test_arg
-      $ mina_image_arg $ archive_image_arg $ debug_arg)
+      $ mina_image_arg $ archive_image_arg $ debug_arg
+      $ generate_code_coverage_arg)
   in
   let term = Term.(const start $ inputs_term) in
   (term, info)

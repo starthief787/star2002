@@ -32,6 +32,7 @@ module Engine = struct
       -> test_name:string
       -> cli_inputs:Cli_inputs.t
       -> debug:bool
+      -> generate_code_coverage:bool
       -> test_config:Test_config.t
       -> images:Test_config.Container_images.t
       -> t
@@ -256,6 +257,17 @@ module Engine = struct
     val initialize_infra : logger:Logger.t -> t -> unit Malleable_error.t
   end
 
+  module type Coverage_intf = sig
+    module Network : Network_intf
+
+    type t
+
+    val create : logger:Logger.t -> t
+
+    val download_coverage_data_from_nodes :
+      t -> nodes:('a, Network.Node.t, 'b) Map.t -> string list Malleable_error.t
+  end
+
   module type Network_manager_intf = sig
     module Network_config : Network_config_intf
 
@@ -268,6 +280,8 @@ module Engine = struct
     val deploy : t -> Network.t Malleable_error.t
 
     val destroy : t -> unit Malleable_error.t
+
+    val generate_code_coverage : t -> Network.t -> unit Malleable_error.t
 
     val cleanup : t -> unit Deferred.t
   end
@@ -302,6 +316,8 @@ module Engine = struct
          and module Network := Network
 
     module Log_engine : Log_engine_intf with module Network := Network
+
+    module Coverage : Coverage_intf with module Network := Network
   end
 end
 

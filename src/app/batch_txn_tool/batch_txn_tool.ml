@@ -1,9 +1,9 @@
 open Core
 open Async
-open Signature_lib
-open Txn_tool_graphql
 open Unsigned
 open Logger
+open Signature_lib
+open Integration_test_lib
 
 let gen_keys count =
   Quickcheck.random_value ~seed:`Nondeterministic
@@ -20,6 +20,31 @@ let output_keys =
        List.iter (gen_keys count) ~f:(fun pk ->
            Format.printf "%s@." (Public_key.Compressed.to_base58_check pk) ) )
 
+let get_account_data ~logger ~public_key ~graphql_target_node =
+  let open Deferred.Or_error.Let_syntax in
+  let graphql = Test_graphql.create_from_string_default ~endpoint:graphql_target_node ~logger in
+  let%map account = Test_graphql.get_account_data_by_pk graphql ~public_key in
+  account.nonce
+
+let send_signed_transaction ~logger ~sender_priv_key ~nonce ~receiver_pub_key
+    ~amount ~fee ~graphql_target_node =
+  let tx_sender = Tx_sender.from_string ~endpoint:graphql_target_node ~logger in
+  let sender_pub_key = Public_key.of_private_key_exn sender_priv_key in
+  let signed_tx: Command_spec.signed_tx = {
+    tx = {
+      nonce = Some nonce
+      ; amount
+      ;fee 
+      ; receiver_pub_key
+      ; sender_pub_key
+      ; memo = ""
+      ; valid_until = Mina_numbers.Global_slot_since_genesis.max_value
+    };
+    sender_priv_key
+  } 
+  in
+  Tx_sender.send_signed_payment tx_sender ~spec:signed_tx
+  
 let output_cmds =
   let open Command.Let_syntax in
   Command.basic ~summary:"Generate the given number of public keys on stdout"
@@ -230,10 +255,11 @@ let there_and_back_again ~num_txn_per_acct ~txns_per_block ~slot_time ~fill_rate
       (pk_to_str receiver_kp.public_key)
       (Currency.Amount.to_string initial_send_amount)
       (Currency.Fee.to_string fee_amount) ;
+ 
     let%bind res =
       send_signed_transaction ~sender_priv_key:sender_kp.private_key ~nonce
-        ~receiver_pub_key:receiver_kp.public_key ~amount:initial_send_amount
-        ~fee:fee_amount ~graphql_target_node ~logger
+        ~receiver_pub_key:receiver_kp.public_key ~amount:(Currency.Amount.to_mina_int initial_send_amount)
+        ~fee:(Currency.Fee.to_mina_int fee_amount) ~graphql_target_node ~logger
     in
     let%bind () =
       match res with

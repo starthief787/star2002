@@ -2,6 +2,7 @@
 
 val hash_fold_array : 'a Sigs.hashable -> 'a array Sigs.hashable
 
+(** To represent options *inside* the circuit *)
 module Opt : sig
   type ('a, 'bool) t = Some of 'a | None | Maybe of 'bool * 'a
   [@@deriving sexp, compare, yojson, hash, equal]
@@ -127,6 +128,7 @@ module Permuts_vec = Vector.Vector_7
 module Permuts_minus_1 = Nat.N6
 module Permuts_minus_1_vec = Vector.Vector_6
 
+(** Messages involved in the polynomial IOP *)
 module Messages : sig
   module Poly : sig
     type ('w, 'z, 't) t = { w : 'w; z : 'z; t : 't }
@@ -146,6 +148,15 @@ module Messages : sig
 
   module Stable : sig
     module V2 : sig
+      (** Commitments to the different polynomials.
+          - [w_comm] is a vector containing the commitments to the wires. As
+            usual, the vector size is encoded at the type level using
+            {!Columns_vec} for compile time verification of vector properties.
+          - [z_comm] is the commitment to the permutation polynomial
+          - [t_comm] is the commitment to the quotient polynomial
+          - [lookup] contains the commitments to the polynomials involved the
+            lookup arguments.
+      *)
       type 'g t =
         { w_comm : 'g Poly_comm.Without_degree_bound.t Columns_vec.t
         ; z_comm : 'g Poly_comm.Without_degree_bound.t
@@ -381,6 +392,7 @@ module All_evals : sig
        Snarky_backendless.Types.Typ.typ
 end
 
+(** Shifts, related to the permutation argument in Plonk *)
 module Shifts : sig
   type 'a t = 'a array
 end

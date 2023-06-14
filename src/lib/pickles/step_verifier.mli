@@ -78,6 +78,11 @@ val finalize_other_proof :
        , 'c )
        Pickles_types.Vector.t
 
+(** [hash_messages_for_next_step_proof idx state_to_field_element] computes a
+    challenge for the next proof using a random oracle simulated by a sponge
+    hash function (i.e. Fiat Shamir transformation). It takes the index of the proof
+    [idx] and a function which converts the communication transcript (i.e. the
+    state) to field elements to be used by the random oracle *)
 val hash_messages_for_next_step_proof :
      index:
        Step_main_inputs.Inner_curve.t
@@ -115,6 +120,8 @@ val hash_messages_for_next_step_proof_opt :
         -> Step_main_inputs.Impl.Field.t )
        Core_kernel.Staged.t
 
+(** Actual verification using cryptographic tools. Returns [true] (encoded as a
+    in-circuit boolean variable) if the verification is successfull *)
 val verify :
      proofs_verified:(module Pickles_types.Nat.Add.Intf with type n = 'a)
   -> is_base_case:Step_main_inputs.Impl.Boolean.var
@@ -127,6 +134,7 @@ val verify :
        , Step_main_inputs.Impl.Field.t Pickles_types.Shifted_value.Type1.t
          Pickles_types.Hlist0.Id.t )
        Composition_types.Wrap.Lookup_parameters.t
+       (* lookup arguments parameters *)
   -> feature_flags:Plonk_types.Opt.Flag.t Plonk_types.Features.t
   -> proof:Wrap_proof.Checked.t
   -> srs:Kimchi_bindings.Protocol.SRS.Fq.t
@@ -165,6 +173,7 @@ val verify :
        Pickles_types.Hlist0.Id.t
      , Step_main_inputs.Impl.field Composition_types.Branch_data.Checked.t )
      Import.Types.Wrap.Statement.In_circuit.t
+     (* statement *)
   -> ( Step_main_inputs.Impl.Field.t
      , Step_main_inputs.Impl.Field.t Import.Scalar_challenge.t
      , Other_field.t Pickles_types.Shifted_value.Type2.t
@@ -177,4 +186,5 @@ val verify :
      , Step_main_inputs.Impl.Field.t
      , 'e )
      Import.Types.Step.Proof_state.Per_proof.In_circuit.t
+     (* unfinalized *)
   -> Step_main_inputs.Impl.Boolean.var

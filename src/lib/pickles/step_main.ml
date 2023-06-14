@@ -88,7 +88,7 @@ let verify_one ~srs
      statement *)
   let verified =
     with_label __LOC__ (fun () ->
-        verify ~srs ~feature_flags:d.feature_flags
+        Step_verifier.verify ~srs ~feature_flags:d.feature_flags
           ~lookup_parameters:
             { use = Plonk_checks.lookup_tables_used d.feature_flags
             ; zero =

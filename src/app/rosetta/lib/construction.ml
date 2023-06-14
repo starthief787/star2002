@@ -658,7 +658,7 @@ module Parse = struct
             let signer = fee_payer_pk in
             let valid_until =
               Option.map payment.valid_until
-                ~f:Mina_numbers.Global_slot.of_uint32
+                ~f:Mina_numbers.Global_slot_since_genesis.of_uint32
             in
             let nonce = payment.nonce in
             let%map memo =
@@ -679,7 +679,10 @@ module Parse = struct
             let signature_kind : Mina_signature_kind.t =
               if String.equal network_identifier.network "mainnet" then
                 Mainnet
-              else Testnet
+              else if String.equal network_identifier.network "testnet" then
+                Testnet
+              else
+                Other_network network_identifier.network
             in
             Option.is_some @@
               Signed_command.create_with_signature_checked ~signature_kind

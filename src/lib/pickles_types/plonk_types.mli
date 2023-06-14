@@ -210,6 +210,7 @@ module Messages : sig
 end
 
 module Evals : sig
+  (** Evaluations used by the lookup arguments *)
   module Lookup : sig
     type 'f t =
       { sorted : 'f array; aggreg : 'f; table : 'f; runtime : 'f option }
@@ -334,6 +335,8 @@ module Proof : sig
     module Latest = V2
   end
 
+  (** Represents a proof. A proof consists of messages and openings from the
+      polynomial protocols *)
   type ('a, 'b, 'c) t = ('a, 'b, 'c) Stable.V2.t =
     { messages : 'a Messages.t; openings : ('a, 'b, 'c) Openings.t }
 end

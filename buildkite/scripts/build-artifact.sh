@@ -19,11 +19,11 @@ echo "--- Build all major tagets required for packaging"
 echo "Building from Commit SHA: ${MINA_COMMIT_SHA1}"
 echo "Rust Version: $(rustc --version)"
 dune build "--profile=${DUNE_PROFILE}" \
+  src/app/cli/src/mina_testnet_signatures.exe \
   src/app/logproc/logproc.exe \
   src/app/runtime_genesis_ledger/runtime_genesis_ledger.exe \
   src/app/generate_keypair/generate_keypair.exe \
   src/app/validate_keypair/validate_keypair.exe \
-  src/app/cli/src/mina_testnet_signatures.exe \
   src/app/archive/archive.exe \
   src/app/replayer/replayer.exe \
   src/app/extract_blocks/extract_blocks.exe \

@@ -34,6 +34,10 @@ dune build "--profile=${DUNE_PROFILE}" \
   src/app/rosetta/rosetta_testnet_signatures.exe \
   src/app/test_executive/test_executive.exe # 2>&1 | tee /tmp/buildocaml.log
 
+_build/default/src/app/cli/src/mina_testnet_signatures.exe --version
+
+ls .
+
 echo "--- Bundle all packages for Debian ${MINA_DEB_CODENAME}"
 echo " Includes mina daemon, archive-node, rosetta, generate keypair for berkeley"
 [[ ${MINA_BUILD_MAINNET} ]] && echo " MINA_BUILD_MAINNET is true so this includes the mainnet and devnet packages for mina-daemon as well"

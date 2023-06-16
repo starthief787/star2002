@@ -23,3 +23,7 @@ func OutputSpreadsheetId() string {
 		return TEST_OUTPUT_SPREADSHEET_ID
 	}
 }
+
+func GetBucketName(config AppConfig) string {
+	return config.Aws.AccountId + "-block-producers-uptime"
+}

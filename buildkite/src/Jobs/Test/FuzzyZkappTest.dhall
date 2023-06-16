@@ -13,6 +13,7 @@ let Docker = ../../Command/Docker/Type.dhall
 let Size = ../../Command/Size.dhall
 
 let buildTestCmd : Text -> Text -> Natural -> Size -> Command.Type = \(profile : Text) -> \(path : Text) -> \(timeout : Natural)  -> \(individual_test_timeout : Natural) -> \(cmd_target : Size) ->
+  let timeout = Natural/show timeout in
   let individual_test_timeout = Natural/show individual_test_timeout in
   let key = "fuzzy-zkapp-unit-test-${profile}" in
   Command.build

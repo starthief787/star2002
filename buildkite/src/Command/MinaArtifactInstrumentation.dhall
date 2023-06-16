@@ -40,7 +40,7 @@ let pipeline : DebianVersions.DebVersion -> Pipeline.Config.Type = \(debVersion 
               "PREPROCESSOR=./scripts/zexe-standardize.sh"
             ] "./buildkite/scripts/build-artifact.sh",
             label = "Build Mina for ${DebianVersions.capitalName debVersion} with instrumentation",
-            key = "build-deb-pkg",
+            key = "build-deb-pkg-instr",
             target = Size.XLarge,
             retries = [
               Command.Retry::{

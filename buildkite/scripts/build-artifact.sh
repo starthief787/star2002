@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
+set -xeo pipefail
 
 eval $(opam config env)
 export PATH=/home/opam/.cargo/bin:/usr/lib/go/bin:$PATH

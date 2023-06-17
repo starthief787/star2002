@@ -71,14 +71,20 @@ case "${SERVICE}" in
 mina-archive|mina-archive-instrumented)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-archive"
   DOCKER_CONTEXT="dockerfiles/"
-  ;;
+  ;;  
 bot)
   DOCKERFILE_PATH="frontend/bot/Dockerfile"
   DOCKER_CONTEXT="frontend/bot"
   ;;
-mina-daemon|mina-daemon-instrumented)
+mina-daemon)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-daemon"
   DOCKER_CONTEXT="dockerfiles/"
+  VERSION="${VERSION}-${NETWORK##*=}"
+  ;;
+mina-daemon-instrumented)
+  DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-daemon"
+  DOCKER_CONTEXT="dockerfiles/"
+  NETWORK=${NETWORK}-instrumented
   VERSION="${VERSION}-${NETWORK##*=}"
   ;;
 mina-toolchain)

@@ -127,11 +127,8 @@ copy_common_daemon_configs() {
 
   # Copy signature-based Binaries (based on signature type $2 passed into the function)
   cp ./default/src/app/cli/src/mina_${2}_signatures.exe "${BUILDDIR}/usr/local/bin/mina"
+  cp ./default/src/app/cli/src/mina_${2}_signatures.exe "${BUILDDIR}/usr/local/bin/mina_testnet"
   cp ./default/src/app/rosetta/rosetta_${2}_signatures.exe "${BUILDDIR}/usr/local/bin/mina-rosetta"
-
-  ${BUILDDIR}/usr/local/bin/mina --version
-
-  ls .
 
   # Copy over Build Configs (based on $2)
   mkdir -p "${BUILDDIR}/etc/coda/build_config"
@@ -275,15 +272,22 @@ build_deb mina-zkapp-test-transaction
 ##################################### END SNAPP TEST TXN PACKAGE #######################################
 
 ##################################### BERKELEY PACKAGE #######################################
+
+##################################### BERKELEY INSTRUMENTED PACKAGE #######################################
+if [ -z ${DUNE_INSTRUMENT_WITH} ]; then
+MINA_DEB_SUFFIX=-instrumented
+fi 
+
+
 echo "------------------------------------------------------------"
 echo "--- Building Mina Berkeley testnet signatures deb without keys:"
 
 mkdir -p "${BUILDDIR}/DEBIAN"
-create_control_file mina-berkeley "${SHARED_DEPS}${DAEMON_DEPS}" 'Mina Protocol Client and Daemon'
+create_control_file mina-berkeley${MINA_DEB_SUFFIX} "${SHARED_DEPS}${DAEMON_DEPS}" 'Mina Protocol Client and Daemon'
 
 copy_common_daemon_configs berkeley testnet 'seed-lists/berkeley_seeds.txt'
 
-build_deb mina-berkeley
+build_deb mina-berkeley${MINA_DEB_SUFFIX}
 
 ##################################### END BERKELEY PACKAGE #######################################
 

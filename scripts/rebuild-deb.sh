@@ -4,7 +4,7 @@
 
 echo "--- Setting up the envrionment to build debian packages..."
 
-set -euo pipefail
+set -euox pipefail
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 cd "${SCRIPTPATH}/../_build"

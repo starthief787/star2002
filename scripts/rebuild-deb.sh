@@ -129,6 +129,10 @@ copy_common_daemon_configs() {
   cp ./default/src/app/cli/src/mina_${2}_signatures.exe "${BUILDDIR}/usr/local/bin/mina"
   cp ./default/src/app/rosetta/rosetta_${2}_signatures.exe "${BUILDDIR}/usr/local/bin/mina-rosetta"
 
+  ${BUILDDIR}/usr/local/bin/mina --version
+
+  ls .
+
   # Copy over Build Configs (based on $2)
   mkdir -p "${BUILDDIR}/etc/coda/build_config"
   # Use parameter expansion to either return "mainnet.mlh" or "devnet.mlh"

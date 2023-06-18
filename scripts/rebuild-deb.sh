@@ -274,7 +274,7 @@ build_deb mina-zkapp-test-transaction
 ##################################### BERKELEY PACKAGE #######################################
 
 ##################################### BERKELEY INSTRUMENTED PACKAGE #######################################
-if [ -z $DUNE_INSTRUMENT_WITH ]; then
+if [ -z ${DUNE_INSTRUMENT_WITH+x} ]; then
 MINA_DEB_NAME=mina-berkeley
 else
 MINA_DEB_NAME=mina-berkeley-instrumented

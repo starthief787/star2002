@@ -274,22 +274,21 @@ build_deb mina-zkapp-test-transaction
 ##################################### BERKELEY PACKAGE #######################################
 
 ##################################### BERKELEY INSTRUMENTED PACKAGE #######################################
-if [ -z ${DUNE_INSTRUMENT_WITH} ]; then
-MINA_DEB_NAME=mina-berkeley-instrumented
-else
+if [ -z $DUNE_INSTRUMENT_WITH ]; then
 MINA_DEB_NAME=mina-berkeley
+else
+MINA_DEB_NAME=mina-berkeley-instrumented
 fi 
-
 
 echo "------------------------------------------------------------"
 echo "--- Building Mina Berkeley testnet signatures deb without keys:"
 
 mkdir -p "${BUILDDIR}/DEBIAN"
-create_control_file ${MINA_DEB_NAME} "${SHARED_DEPS}${DAEMON_DEPS}" 'Mina Protocol Client and Daemon'
+create_control_file "${MINA_DEB_NAME}" "${SHARED_DEPS}${DAEMON_DEPS}" 'Mina Protocol Client and Daemon'
 
 copy_common_daemon_configs berkeley testnet 'seed-lists/berkeley_seeds.txt'
 
-build_deb ${MINA_DEB_NAME}
+build_deb "${MINA_DEB_NAME}"
 
 ##################################### END BERKELEY PACKAGE #######################################
 

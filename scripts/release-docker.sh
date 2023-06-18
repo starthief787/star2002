@@ -68,9 +68,14 @@ if [[ -z "$EXTRA" ]]; then EXTRA=""; fi;
 if [[ $(echo ${VALID_SERVICES[@]} | grep -o "$SERVICE" - | wc -w) -eq 0 ]]; then usage "Invalid service!"; fi
 
 case "${SERVICE}" in
-mina-archive|mina-archive-instrumented)
+mina-archive)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-archive"
   DOCKER_CONTEXT="dockerfiles/"
+  ;;  
+mina-archive-instrumented)
+  DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-archive"
+  DOCKER_CONTEXT="dockerfiles/"
+  VERSION=${VERSION}-instrumented
   ;;  
 bot)
   DOCKERFILE_PATH="frontend/bot/Dockerfile"
@@ -84,8 +89,7 @@ mina-daemon)
 mina-daemon-instrumented)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-daemon"
   DOCKER_CONTEXT="dockerfiles/"
-  NETWORK=${NETWORK}-instrumented
-  VERSION="${VERSION}-${NETWORK##*=}"
+  VERSION="${VERSION}-instrumented-${NETWORK##*=}"
   ;;
 mina-toolchain)
   DOCKERFILE_PATH="dockerfiles/stages/1-build-deps dockerfiles/stages/2-opam-deps dockerfiles/stages/3-toolchain"

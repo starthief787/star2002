@@ -75,7 +75,6 @@ mina-archive)
 mina-archive-instrumented)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-archive"
   DOCKER_CONTEXT="dockerfiles/"
-  VERSION=${VERSION}-instrumented
   ;;  
 bot)
   DOCKERFILE_PATH="frontend/bot/Dockerfile"
@@ -89,7 +88,7 @@ mina-daemon)
 mina-daemon-instrumented)
   DOCKERFILE_PATH="dockerfiles/Dockerfile-mina-daemon"
   DOCKER_CONTEXT="dockerfiles/"
-  VERSION="${VERSION}-instrumented-${NETWORK##*=}"
+  VERSION="${VERSION}-${NETWORK##*=}" 
   ;;
 mina-toolchain)
   DOCKERFILE_PATH="dockerfiles/stages/1-build-deps dockerfiles/stages/2-opam-deps dockerfiles/stages/3-toolchain"
@@ -125,7 +124,7 @@ if [[ -z "${BUILDKITE_PULL_REQUEST_REPO}" ]]; then
   REPO="--build-arg MINA_REPO=https://github.com/MinaProtocol/mina"
 fi
 
-DOCKER_REGISTRY="gcr.io/o1labs-192920"
+DOCKER_REGISTRY="gcr.io/o1labs-192920"deb_version
 TAG="${DOCKER_REGISTRY}/${SERVICE}:${VERSION}"
 # friendly, predictable tag
 GITHASH=$(git rev-parse --short=7 HEAD)

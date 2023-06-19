@@ -55,7 +55,8 @@ let pipeline : DebianVersions.DebVersion -> Pipeline.Config.Type = \(debVersion 
           service="mina-daemon-instrumented",
           network="berkeley",
           deb_codename="${DebianVersions.lowerName debVersion}",
-          step_key="daemon-berkeley-${DebianVersions.lowerName debVersion}-instrumented-docker-image"
+          step_key="daemon-berkeley-${DebianVersions.lowerName debVersion}-instrumented-docker-image",
+          extra-args="--build-arg service=\"mina-instrumented\""
         }
 
         in
@@ -67,7 +68,8 @@ let pipeline : DebianVersions.DebVersion -> Pipeline.Config.Type = \(debVersion 
           deps=DebianVersions.dependsOn debVersion,
           service="mina-archive-instrumented",
           deb_codename="${DebianVersions.lowerName debVersion}",
-          step_key="archive-${DebianVersions.lowerName debVersion}-instrumented-docker-image"
+          step_key="archive-${DebianVersions.lowerName debVersion}-instrumented-docker-image",
+          extra-args="--build-arg service=\"mina-archive-instrumented\""
         }
         
         in

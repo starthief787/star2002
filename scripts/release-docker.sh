@@ -124,7 +124,7 @@ if [[ -z "${BUILDKITE_PULL_REQUEST_REPO}" ]]; then
   REPO="--build-arg MINA_REPO=https://github.com/MinaProtocol/mina"
 fi
 
-DOCKER_REGISTRY="gcr.io/o1labs-192920"deb_version
+DOCKER_REGISTRY="gcr.io/o1labs-192920"
 TAG="${DOCKER_REGISTRY}/${SERVICE}:${VERSION}"
 # friendly, predictable tag
 GITHASH=$(git rev-parse --short=7 HEAD)

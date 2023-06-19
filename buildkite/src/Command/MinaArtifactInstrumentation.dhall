@@ -69,7 +69,7 @@ let pipeline : DebianVersions.DebVersion -> Pipeline.Config.Type = \(debVersion 
           service="mina-archive-instrumented",
           deb_codename="${DebianVersions.lowerName debVersion}",
           step_key="archive-${DebianVersions.lowerName debVersion}-instrumented-docker-image",
-          extra_args="--build-arg service=mina-archive-instrumented"
+          extra_args="--build-arg service=mina-instrumented"
         }
         
         in

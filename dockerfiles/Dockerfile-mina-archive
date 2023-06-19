@@ -5,7 +5,7 @@ FROM ${image}
 ARG deb_version
 ARG deb_codename=bullseye
 ARG deb_release=unstable
-ARG service=mina-archive
+ARG service=mina
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo "Building image with version $deb_codename $deb_release $deb_version"
